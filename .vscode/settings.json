@@ -1,0 +1,6 @@
+{
+    "markdown-pdf.styles": [
+      "${workspaceFolder}/assets/markdown.css"
+    ]
+  }
+  

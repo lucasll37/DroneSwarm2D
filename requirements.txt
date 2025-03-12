@@ -1,0 +1,11 @@
+imageio[ffmpeg]
+stable-baselines3[extra]
+tensorflow[and-cuda]
+ipykernel==6.29.5
+matplotlib==3.9.4
+pandas==2.2.3
+pygame==2.6.1
+scipy==1.13.1
+seaborn==0.13.2
+CairoSVG==2.7.1
+pydot==3.0.4
