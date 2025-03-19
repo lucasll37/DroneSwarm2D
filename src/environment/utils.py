@@ -301,8 +301,10 @@ def plot_individual_states_matplotlib(state: Dict) -> None:
     cmap = plt.cm.hsv  # Color palette based on angles
 
     # Iterate over the two detection views
-    for idx, plot_view in enumerate(["Enemy Detection", "Friend Detection"]):
-        ax = fig.add_subplot(2, 1, idx + 1, projection='3d')
+    for idx, plot_view in enumerate(["Enemy Detection"]):
+    # for idx, plot_view in enumerate(["Enemy Detection", "Friend Detection"]):
+        # ax = fig.add_subplot(2, 1, idx + 1, projection='3d')
+        ax = fig.add_subplot(111, projection='3d')
         ax.set_box_aspect((1, 1, 0.4))
 
         # Create meshgrid for grid dimensions
@@ -342,27 +344,27 @@ def plot_individual_states_matplotlib(state: Dict) -> None:
         ax.plot_wireframe(X, Y, Z_smoothed, color='black', linewidth=0.2, rstride=1, cstride=1)
 
         # Plot drone's position as a red vertical line (in XY projection)
-        ax.plot([state['pos'].x, state['pos'].x],
-                [SIM_HEIGHT, 0],
-                [0, 0], color='red', linewidth=2, label='Drone Position')
-        ax.plot([state['pos'].x, state['pos'].x],
-                [state['pos'].y, state['pos'].y],
-                [0, 1.5], color='red', linewidth=1, zorder=10)
+        # ax.plot([state['pos'][0], state['pos'][0]],
+        #         [SIM_HEIGHT, 0],
+        #         [0, 0], color='black', linewidth=4, label='Drone Position')
+        ax.plot([state['pos'][0], state['pos'][0]],
+                [state['pos'][1], state['pos'][1]],
+                [0, 1], color='black', linewidth=4, zorder=10)
 
         x_offset = ax.get_xlim()[0]
         ax.plot([x_offset, x_offset],
-                [state['pos'].y, state['pos'].y],
-                [0, 1.5], color='gray', linewidth=1, zorder=10)
+                [state['pos'][1], state['pos'][1]],
+                [0, 1], color='black', linewidth=4, zorder=10)
 
         y_offset = ax.get_ylim()[0]
-        ax.plot([state['pos'].y, state['pos'].y],
+        ax.plot([state['pos'][1], state['pos'][1]],
                 [y_offset, y_offset],
-                [0, 1.5], color='gray', linewidth=1, zorder=10)
+                [0, 1], color='black', linewidth=4, zorder=10)
 
-        ax.set_title(plot_view, fontsize=12)
+        # ax.set_title(plot_view, fontsize=12)
         ax.set_xlabel('X', fontsize=10)
         ax.set_ylabel('Y', fontsize=10)
-        ax.set_zlabel('Intensity', fontsize=10)
+        ax.set_zlabel('Recency', fontsize=10)
         ax.invert_yaxis()
         ax.set_xlim(0, SIM_WIDTH)
         ax.set_ylim(SIM_HEIGHT, 0)

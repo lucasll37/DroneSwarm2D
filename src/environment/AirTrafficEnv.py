@@ -152,7 +152,7 @@ def draw_friend_communication(surface: pygame.Surface, friend_drones: List[Any],
         for j in range(i + 1, len(friend_drones)):
             d1 = friend_drones[i]
             d2 = friend_drones[j]
-            if d1.pos.distance_to(d2.pos) < COMMUNICATION_RANGE:
+            if d1.pos.distance_to(d2.pos) <= COMMUNICATION_RANGE:
                 draw_dashed_line(surface, (255, 255, 255), d1.pos, d2.pos,
                                  width=1, dash_length=10, space_length=5)
 
@@ -221,7 +221,7 @@ class AirTrafficEnv:
         self.folder_name = None
         self.episode: int = 0
         self.current_step: int = 0
-        self.friend_drones: Optional[List[Drone]] = []
+        self.friend_drones: Optional[List[FriendDrone]] = []
         self.enemy_drones: Optional[List[EnemyDrone]] = []
         self.interest_point: Optional[CircleInterestPoint] = None
         self.selected_drone = None
@@ -239,19 +239,18 @@ class AirTrafficEnv:
         self.save_frames = False
         self.show_graph: bool = True
         self.paused: bool = False
-        self.show_friend_detection_range: bool = True
+        self.show_friend_detection_range: bool = False
         self.show_enemy_detection_range: bool = True
         self.show_dashed_lines: bool = True
         self.show_arrows: bool = True
         self.show_target_lines: bool = False  # Draw line between enemy and its closest target
         self.show_friend_comm_range: bool = False
         self.show_trajectory: bool = True   
+        self.show_debug = False
+        self.return_to_base = False
         self.export_to_tacview: bool = False     
         self.frame_number = 0
         
-        # Tacview log storage
-        self.tacview_logs: dict = {}
-
         # Initialize UI buttons with positions relative to the simulation and graph areas.
         button_width: int = 130
         button_height: int = 30
@@ -267,7 +266,7 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row1_y, button_width, button_height), "Pause", self.toggle_pause, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row1_y, button_width, button_height), "Reset", self.reset_simulation))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row1_y, button_width, button_height), "Exit", self.exit_env))
-        self.buttons.append(Button((graph_x + 10, row2_y, button_width, button_height), "Tog. Friend Range", self.toggle_friend_range, toggled=True))
+        self.buttons.append(Button((graph_x + 10, row2_y, button_width, button_height), "Tog. Friend Range", self.toggle_friend_range, toggled=False))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row2_y, button_width, button_height), "Tog. Enemy Range", self.toggle_enemy_range, toggled=True))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Dashed", self.toggle_dashed, toggled=True))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Arrows", self.toggle_arrows, toggled=True))
@@ -276,8 +275,10 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Save Frames", self.toogle_save_frames, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Target Lines", self.toggle_target_lines, toggled=False))
         self.buttons.append(Button((graph_x + 10, row4_y, button_width, button_height), "Tog. Trajetory", self.toggle_trajetory, toggled=True))
+        self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=False))
+        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False))
 
-    # ------------- UI Button Callback Methods -------------
+    # ------------- UI Button Callback Methods -------------        
     def toggle_graph(self) -> None:
         self.show_graph = not self.show_graph
 
@@ -323,6 +324,12 @@ class AirTrafficEnv:
         
     def toggle_tacview_export(self) -> None:
         self.export_to_tacview = not self.export_to_tacview
+        
+    def toggle_debug(self) -> None:
+        self.show_debug = not self.show_debug
+        
+    def toogle_return(self) -> None:
+        self.return_to_base = not self.return_to_base
 
     def handle_tacview(self) -> None:
         """
@@ -473,7 +480,7 @@ class AirTrafficEnv:
             ax.set_title(plot_view, fontsize=12)
             ax.set_xlabel('X', fontsize=10)
             ax.set_ylabel('Y', fontsize=10)
-            ax.set_zlabel('Intensity', fontsize=10)
+            ax.set_zlabel('Recency', fontsize=10)
             ax.invert_yaxis()
             ax.set_xlim(0, SIM_WIDTH)
             ax.set_ylim(SIM_HEIGHT, 0)
@@ -522,9 +529,18 @@ class AirTrafficEnv:
         self.handle_events()
         frame_reward = 0
         if not self.paused:
+            
             self.current_time += timedelta(seconds=DT_STEP)
             for drone in self.friend_drones:
-                drone.update(self.enemy_drones, self.friend_drones)
+                drone.update(self.enemy_drones, self.friend_drones, self.return_to_base)
+                
+                if self.return_to_base and drone.pos.distance_to(CENTER) < EPSILON:
+                    self.friend_drones = [f for f in self.friend_drones if drone.drone_id != f.drone_id]
+                    if drone.is_leader:
+                        self.leader = None
+                    if drone.selected:
+                        self.selected_drone = None
+                    
             for enemy in self.enemy_drones:
                 detector = None
                 for friend in self.friend_drones:
@@ -646,13 +662,24 @@ class AirTrafficEnv:
         header_text = f"Air Traffic Env - Episode: {episode:4d} | Step: {frame_count:4d} | Accumulated Reward: {accum_reward:8.2f}"
         header_label = self.font.render(header_text, True, (0, 255, 0))
         surface.blit(header_label, (10, 40))
+        
+        friend_count = f"Friend Drones: {len(friend_drones)}"
+        friend_label = self.font.render(friend_count, True, (0, 255, 0))
+        surface.blit(friend_label, (10, 70))
+        
+        enemy_count = f"Enemy Drones: {len(self.enemy_drones)}"
+        enemy_label = self.font.render(enemy_count, True, (0, 255, 0))
+        surface.blit(enemy_label, (10, 100))
+        
         duration = current_time - self.simulation_start_time
         duration_str = str(duration).split(".")[0]
         time_str = current_time.strftime('%Y-%m-%dT %H:%M:%S.%f')[:-3] + "Z"
         header_time = self.font.render(f"{time_str} (duration: {duration_str})", True, (0, 255, 0))
         surface.blit(header_time, (10, SIM_HEIGHT - 30))
+        
         x_label = self.font.render(" X ", True, (255, 255, 255), (0, 255, 0))
         surface.blit(x_label, (SIM_WIDTH // 2, SIM_HEIGHT - 30))
+        
         y_label = self.font.render(" Y ", True, (255, 255, 255), (0, 255, 0))
         surface.blit(y_label, (SIM_WIDTH - 40, SIM_HEIGHT // 2))
 
@@ -671,20 +698,27 @@ class AirTrafficEnv:
                 global_enemy_intensity = np.maximum(global_enemy_intensity, drone.enemy_intensity)
                 global_enemy_direction = np.where(np.expand_dims(drone.enemy_intensity, axis=2) > 0,
                                                   drone.enemy_direction, global_enemy_direction)
+                
             draw_heatmap(self.sim_surface, global_enemy_intensity, "orange") # red
+            
             if self.show_arrows:
                 draw_direction(self.sim_surface, global_enemy_intensity, global_enemy_direction, 0.1, show_arrows=self.show_arrows)
+                
             if self.show_dashed_lines:
                 draw_friend_communication(self.sim_surface, self.friend_drones, show_dashed=self.show_dashed_lines)
+                
             for friend in self.friend_drones:
-                friend.draw(self.sim_surface, show_detection=self.show_friend_detection_range,
-                            show_comm_range=self.show_friend_comm_range, show_trajectory=self.show_trajectory)
+                friend.draw(self.sim_surface, self.show_friend_detection_range, self.show_friend_comm_range, self.show_trajectory, self.show_debug)
+                
             for enemy in self.enemy_drones:
-                enemy.draw(self.sim_surface, show_detection=self.show_enemy_detection_range, show_trajectory=self.show_trajectory)
+                enemy.draw(self.sim_surface, self.show_enemy_detection_range, self.show_trajectory, self.show_debug)
+                
             if self.show_target_lines:
                 self.draw_target_lines(self.sim_surface)
+                
             self.interest_point.draw(self.sim_surface)
             self.draw_header(self.sim_surface, self.episode, self.current_step, self.current_time, self.friend_drones, self.accum_reward)
+            
             if self.show_graph:
                 graph_image = self.plot_individual_states()
             else:
@@ -692,6 +726,7 @@ class AirTrafficEnv:
                 graph_image.fill((0, 0, 0))
                 text = self.font.render("Graph Disabled", True, (255, 255, 255))
                 graph_image.blit(text, (GRAPH_WIDTH // 2 - text.get_width() // 2, GRAPH_HEIGHT // 2 - text.get_height() // 2))
+                
             screen.fill((50, 50, 50))
             screen.blit(self.sim_surface, (0, 0))
             screen.blit(graph_image, (SIM_WIDTH, 0))
@@ -718,7 +753,6 @@ class AirTrafficEnv:
                 self.frame_number += 1
             
             pygame.display.flip()
-            # Optionally limit frame rate:
             clock.tick(30)
 
     def close(self) -> None:

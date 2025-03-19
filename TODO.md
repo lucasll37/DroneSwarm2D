@@ -13,9 +13,6 @@ ajustar pos behavior clone
 
 Agressividade deve ser 1 quando muito próximo da área de interesse
 
-Incluir o botão de regress
-
-Escrever CADN
 
 -------------------------------------------------------------
 RL

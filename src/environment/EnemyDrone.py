@@ -60,6 +60,7 @@ class EnemyDrone:
         target_vector = self.interest_point_center - self.pos
         direction = target_vector.normalize() if target_vector.length() > 0 else pygame.math.Vector2(0, 0)
         self.vel = direction * ENEMY_SPEED
+        self.info: str = ""
         
         # Set display color and assign a unique drone ID.
         self.color: Tuple[int, int, int] = (255, 0, 0)
@@ -68,7 +69,7 @@ class EnemyDrone:
         # Auxiliary attributes for specific behaviors.
         self.phase = 0
         self.timer = 0
-        self.start_delay = 0  # Optionally add a random delay if needed
+        self.start_delay = random.randint(0, 60) # 0
         
         # Assign behavior type; if none is provided, randomly choose one.
         if behavior_type is None:
@@ -132,7 +133,7 @@ class EnemyDrone:
     # -----------------------------------------------------------------------------
     # Update Method
     # -----------------------------------------------------------------------------
-    def update(self, detector: Optional[pygame.math.Vector2] = None) -> None:
+    def update(self, detector: Optional[pygame.math.Vector2] = None) -> None: 
         """
         Update the drone's position based on its behavior and velocity while ensuring
         it remains within simulation bounds. The drone stops moving when it reaches the interest point.
@@ -185,6 +186,7 @@ class EnemyDrone:
         if self.desperate_attack:
             target_vector = self.interest_point_center - self.pos
             self.vel = target_vector.normalize() * ENEMY_SPEED if target_vector.length() > 0 else pygame.math.Vector2(0, 0)
+            self.info = "Desperate attack"
             return
 
         # Escape behavior: move away from detector or interest point.
@@ -193,8 +195,10 @@ class EnemyDrone:
                 direction = (self.pos - self.detector).normalize()
             else:
                 direction = (self.pos - self.interest_point_center).normalize()
+                
             self.vel = direction * ENEMY_SPEED
             self.escape_steps_count += 1
+            self.info = f"Escape {self.escape_steps_count}/{self.escape_steps} steps"
             if self.escape_steps_count >= self.escape_steps:
                 self.escape_steps_count = 0
                 self.detector = None
@@ -209,11 +213,14 @@ class EnemyDrone:
                 return
             else:
                 self.desperate_attack = True
+                self.info = "Desperate attack"
 
         # Default behavior: compute vector toward the interest point.
         target_vector = self.interest_point_center - self.pos
         if target_vector.length() == 0:
             return  # Avoid division by zero
+        
+        self.info = f"Attack {self.behavior_type}"
 
         # ---------------------- Behavior Implementations ----------------------
         if self.behavior_type == "direct":
@@ -437,7 +444,7 @@ class EnemyDrone:
     # -----------------------------------------------------------------------------
     # Draw Method
     # -----------------------------------------------------------------------------
-    def draw(self, surface: pygame.Surface, show_detection: bool = True, show_trajectory: bool = False) -> None:
+    def draw(self, surface: pygame.Surface, show_detection: bool = True, show_trajectory: bool = False, show_debug: bool = False) -> None:
         """
         Draw the enemy drone on the given surface.
 
@@ -476,3 +483,8 @@ class EnemyDrone:
         label = font.render(f"ID: E{self.drone_id}", True, (255, 255, 255))
         label.set_alpha(128)
         surface.blit(label, (int(self.pos.x) + 20, int(self.pos.y) - 20))
+        
+        if show_debug:
+            len_info = len(self.info)
+            debug_label = font.render(self.info, True, (255, 215, 0))
+            surface.blit(debug_label, (int(self.pos.x) - 3.5 * len_info, int(self.pos.y) + 25))
