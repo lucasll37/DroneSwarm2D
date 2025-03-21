@@ -20,8 +20,8 @@ EPISODES: int = 400  # Number of episodes to run
 EPSILON: int = 1
 
 # -------- Drone Counts --------
-FRIEND_COUNT: int = 13
-ENEMY_COUNT: int = 10
+FRIEND_COUNT: int = 10 # 10
+ENEMY_COUNT: int = 10 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
@@ -56,7 +56,7 @@ INTEREST_POINT_CENTER = pygame.math.Vector2(SIM_WIDTH / 2, SIM_HEIGHT / 2) # deb
 CENTER = INTEREST_POINT_CENTER.copy()
 INTERNAL_RADIUS: int = min(SIM_WIDTH, SIM_HEIGHT) / 10
 EXTERNAL_RADIUS: int = INTERNAL_RADIUS * 4
-INTEREST_POINT_ATTACK_RANGE: int = 10
+INTEREST_POINT_ATTACK_RANGE: int = EPSILON
 INTEREST_POINT_INITIAL_HEALTH: int = 100
 INTEREST_POINT_DAMAGE: int = INTEREST_POINT_INITIAL_HEALTH // ENEMY_COUNT
 
@@ -67,9 +67,10 @@ NEUTRALIZATION_PROB_FRIEND_ALIVE = 0.5 # 0 # 0.5  # Probabilidade de o amigo sob
 NEUTRALIZATION_PROB_ENEMY_ALIVE = 0.2 # 0 # 0.2   # Probabilidade de o inimigo sobreviver (amigo removido)
 NEUTRALIZATION_PROB_BOTH_DEAD = 1 - (NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALIZATION_PROB_ENEMY_ALIVE)
 INITIAL_DISTANCE = INTERNAL_RADIUS * 1.4
+THRESHOLD_PROJECTION = INTERNAL_RADIUS  # Máxima distância permitida entre o drone e sua projeção na reta do inimigo
 
 # -------- AEW --------
-AEW_COUNT: int = 3 # 0
+AEW_COUNT: int = 0 # 0
 AEW_RANGE: int = 350
 AEW_SPEED: float = FRIEND_SPEED
 AEW_DETECTION_RANGE: int = 200
@@ -78,6 +79,10 @@ AEW_DETECTION_RANGE: int = 200
 RADAR_COUNT = 0 # 0 # 1
 RADAR_RANGE = 0
 RADAR_DETECTION_RANGE = 350
+
+# -------- BROKEN --------
+BROKEN_COUNT = 0 # 0 # 1
+UPDATE_STATE_BROKEN = 150
 
 
 # -------- Geographic Coordinates --------

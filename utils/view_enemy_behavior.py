@@ -32,6 +32,8 @@ if config_dir not in sys.path:
 # Project-specific imports
 from EnemyDrone import EnemyDrone
 
+os.makedirs('./images', exist_ok=True)
+
 # -----------------------------------------------------------------------------
 # Simulation Constants
 # -----------------------------------------------------------------------------

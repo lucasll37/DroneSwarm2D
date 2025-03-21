@@ -9,7 +9,8 @@
 
 # TODO
 
-ajustar pos behavior clone
+antes de pagar um drone amigo para perseguidor, verificar se ele é capaz de alcançar o inimigo
+
 
 Agressividade deve ser 1 quando muito próximo da área de interesse
 
@@ -24,11 +25,10 @@ Implementar anti-colisão (para responder pergunta de curioso)
 Escrever README
 -------------------------------------------------------------
 
-1)	Revisão Literária, Formular uma política baseada em RL e artigo Minor - Março
 2)	Escrever TG 1 – Abril
 3)	Escrever TG 2 – Maio
-4)  Escrever Minor - Junho
-5)	Revisão Literária - Agosto
+4)  Revisão Literária RL - Junho
+6)	Formular uma política baseada em RL - Agosto
 7)	Escrever Dissertação – Setembro e Outubro
 
 

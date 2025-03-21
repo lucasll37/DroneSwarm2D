@@ -14,7 +14,7 @@ import imageio.v2 as imageio
 # -----------------------------------------------------------------------------
 # Configuration and Helper Functions
 # -----------------------------------------------------------------------------
-frames_dir = "tmp/frames_20250311_172031"  # Directory containing frame images
+frames_dir = "tmp/frames_20250320_162413"  # Directory containing frame images
 
 def get_frame_number(filename: str) -> int:
     """

@@ -282,6 +282,63 @@ def intercept_direction(chaser_pos: pygame.math.Vector2,
         return direction.normalize()
     else:
         return pygame.math.Vector2(0, 0)
+    
+# -----------------------------------------------------------------------------
+# Interception and Pursuit Calculations
+# -----------------------------------------------------------------------------
+def can_intercept(chaser_pos: pygame.math.Vector2,
+                  chaser_speed: float,
+                  target_pos: pygame.math.Vector2,
+                  target_vel: pygame.math.Vector2,
+                  point_of_interest = None) -> bool:
+    """
+    Determina se é possível que o perseguidor intercepte o alvo antes que o alvo atinja o ponto de interesse.
+    
+    Para isso, a função resolve a equação:
+         ||r + target_vel * t|| = chaser_speed * t,
+    onde r = target_pos - chaser_pos.
+    
+    Retorna True se existir um tempo t > 0 para a interceptação e, além disso, se o tempo de interceptação
+    for menor que o tempo que o alvo levaria para atingir o ponto de interesse.
+    Caso contrário, retorna False.
+    """
+    
+    if point_of_interest is None:
+        intercept_direction = INTEREST_POINT_CENTER
+        
+    # Calcula os coeficientes da equação quadrática
+    r = target_pos - chaser_pos
+    a = target_vel.dot(target_vel) - chaser_speed ** 2
+    b = 2 * r.dot(target_vel)
+    c = r.dot(r)
+    
+    # Caso linear
+    if abs(a) < 1e-6:
+        if abs(b) > 1e-6:
+            t = -c / b
+        else:
+            # Se b também for zero, então o perseguidor já está no alvo.
+            return r.length() == 0
+    else:
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0:
+            return False  # Não há solução real para t
+        sqrt_disc = math.sqrt(discriminant)
+        t1 = (-b + sqrt_disc) / (2 * a)
+        t2 = (-b - sqrt_disc) / (2 * a)
+        t_candidates = [t_val for t_val in (t1, t2) if t_val > 0]
+        if not t_candidates:
+            return False
+        t = min(t_candidates)
+    
+    # Calcula o tempo que o alvo levaria para atingir o ponto de interesse
+    # Se target_vel for zero, não há movimento (não é possível interceptar em movimento)
+    if target_vel.length() == 0:
+        return False
+    t_PI = (point_of_interest - target_pos).length() / target_vel.length()
+    
+    # O perseguidor consegue interceptar se o tempo de interceptação for menor que o tempo para o alvo atingir o PI
+    return t < t_PI
 
 # -----------------------------------------------------------------------------
 # Plotting Utilities

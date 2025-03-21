@@ -399,15 +399,22 @@ class AirTrafficEnv:
             pos = center + pygame.math.Vector2(RADAR_RANGE * math.cos(angle), RADAR_RANGE * math.sin(angle))
             drone = FriendDrone(self.interest_point.center, position=(pos.x, pos.y), behavior_type="RADAR", fixed=True)
             self.friend_drones.append(drone)
+            
         for j in range(AEW_COUNT):
             angle = 2 * math.pi * j / AEW_COUNT
             pos = center + pygame.math.Vector2(AEW_RANGE * math.cos(angle), AEW_RANGE * math.sin(angle))
             drone = FriendDrone(self.interest_point.center, position=(pos.x, pos.y), behavior_type="AEW")
             self.friend_drones.append(drone)
+                                
         for k in range(FRIEND_COUNT - AEW_COUNT - RADAR_COUNT):
             angle = 2 * math.pi * k / (FRIEND_COUNT - AEW_COUNT - RADAR_COUNT)
             pos = center + pygame.math.Vector2(INITIAL_DISTANCE * math.cos(angle), INITIAL_DISTANCE * math.sin(angle))
-            drone = FriendDrone(self.interest_point.center, position=(pos.x, pos.y), behavior_type=self.friend_behavior)
+            
+            if k < BROKEN_COUNT:
+                drone = FriendDrone(self.interest_point.center, position=(pos.x, pos.y), behavior_type=self.friend_behavior, broken=True)
+            else:
+                drone = FriendDrone(self.interest_point.center, position=(pos.x, pos.y), behavior_type=self.friend_behavior)
+                
             if k == 0:
                 self.selected_drone = drone
                 self.leader = drone
@@ -732,13 +739,14 @@ class AirTrafficEnv:
             screen.blit(graph_image, (SIM_WIDTH, 0))
             
             # Display mouse coordinates on the graph area.
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            rel_x = mouse_x / SIM_WIDTH
-            rel_y = mouse_y / SIM_HEIGHT
-            if 0 <= mouse_x <= SIM_WIDTH and 0 <= mouse_y < SIM_HEIGHT:
-                message = f"X: {mouse_x:4d} ({rel_x:.2f}), Y: {mouse_y:4d} ({rel_y:.2f})"
-                coords_text = self.font.render(message, True, (0, 255, 0))
-                screen.blit(coords_text, (SIM_WIDTH - 300, SIM_HEIGHT - 30))
+            if self.show_debug:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                rel_x = mouse_x / SIM_WIDTH
+                rel_y = mouse_y / SIM_HEIGHT
+                if 0 <= mouse_x <= SIM_WIDTH and 0 <= mouse_y < SIM_HEIGHT:
+                    message = f"X: {mouse_x:4d} ({rel_x:.2f}), Y: {mouse_y:4d} ({rel_y:.2f})"
+                    coords_text = self.font.render(message, True, (0, 255, 0))
+                    screen.blit(coords_text, (SIM_WIDTH - 300, SIM_HEIGHT - 30))
     
             for button in self.buttons:
                 button.draw(screen)

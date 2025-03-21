@@ -16,7 +16,7 @@ import numpy as np
 import pygame
 
 # Project-specific imports
-from settings import SIM_WIDTH, SIM_HEIGHT, ENEMY_SPEED, ENEMY_DETECTION_RANGE, INITIAL_AGGRESSIVENESS, ESCAPE_STEPS, FONT_FAMILY, EXTERNAL_RADIUS
+from settings import *
 from utils import draw_dashed_circle, load_svg_as_surface
 
 
@@ -61,6 +61,7 @@ class EnemyDrone:
         direction = target_vector.normalize() if target_vector.length() > 0 else pygame.math.Vector2(0, 0)
         self.vel = direction * ENEMY_SPEED
         self.info: str = ""
+        self.aggressiveness: float = 0.0
         
         # Set display color and assign a unique drone ID.
         self.color: Tuple[int, int, int] = (255, 0, 0)
@@ -69,7 +70,7 @@ class EnemyDrone:
         # Auxiliary attributes for specific behaviors.
         self.phase = 0
         self.timer = 0
-        self.start_delay = random.randint(0, 60) # 0
+        self.start_delay = random.randint(0, 100) # 0
         
         # Assign behavior type; if none is provided, randomly choose one.
         if behavior_type is None:
@@ -154,6 +155,13 @@ class EnemyDrone:
             self.vel = pygame.math.Vector2(0, 0)
             return
 
+        distance_to_interest = self.pos.distance_to(self.interest_point_center)
+        if distance_to_interest > INITIAL_DISTANCE:
+            self.aggressiveness = max(INITIAL_AGGRESSIVENESS, 1 - (distance_to_interest/ (2 *EXTERNAL_RADIUS)))
+        else:
+            self.aggressiveness = 1
+        
+        
         # Update velocity based on the selected behavior.
         self.apply_behavior()
         self.pos += self.vel
@@ -186,7 +194,7 @@ class EnemyDrone:
         if self.desperate_attack:
             target_vector = self.interest_point_center - self.pos
             self.vel = target_vector.normalize() * ENEMY_SPEED if target_vector.length() > 0 else pygame.math.Vector2(0, 0)
-            self.info = "Desperate attack"
+            self.info = "DESPERATE ATTACK"
             return
 
         # Escape behavior: move away from detector or interest point.
@@ -198,7 +206,7 @@ class EnemyDrone:
                 
             self.vel = direction * ENEMY_SPEED
             self.escape_steps_count += 1
-            self.info = f"Escape {self.escape_steps_count}/{self.escape_steps} steps"
+            self.info = f"ESCAPE {self.escape_steps_count}/{self.escape_steps} STEPS"
             if self.escape_steps_count >= self.escape_steps:
                 self.escape_steps_count = 0
                 self.detector = None
@@ -206,21 +214,23 @@ class EnemyDrone:
 
         # Aggressiveness: if detected, decide whether to attack or escape.
         if self.detector:
-            distance_to_interest = self.pos.distance_to(self.interest_point_center)
-            p_attack = 1 - min(distance_to_interest / EXTERNAL_RADIUS, INITIAL_AGGRESSIVENESS)
-            if np.random.rand() < p_attack:
+            # distance_to_interest = self.pos.distance_to(self.interest_point_center)
+            # p_attack = max(1 - (distance_to_interest / EXTERNAL_RADIUS), INITIAL_AGGRESSIVENESS)
+            
+            if np.random.rand() < self.aggressiveness:
+            # if np.random.rand() < p_attack:
+                self.desperate_attack = True
+                self.info = "DESPERATE ATTACK"
+            else:
                 self.escape_steps_count += 1
                 return
-            else:
-                self.desperate_attack = True
-                self.info = "Desperate attack"
 
         # Default behavior: compute vector toward the interest point.
         target_vector = self.interest_point_center - self.pos
         if target_vector.length() == 0:
             return  # Avoid division by zero
         
-        self.info = f"Attack {self.behavior_type}"
+        self.info = f"[{self.behavior_type}] aggr.: {self.aggressiveness:.2f}"
 
         # ---------------------- Behavior Implementations ----------------------
         if self.behavior_type == "direct":
