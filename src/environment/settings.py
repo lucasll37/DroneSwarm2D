@@ -20,8 +20,8 @@ EPISODES: int = 400  # Number of episodes to run
 EPSILON: int = 1
 
 # -------- Drone Counts --------
-FRIEND_COUNT: int = 10 # 10
-ENEMY_COUNT: int = 10 # 10
+FRIEND_COUNT: int = 5 # 10
+ENEMY_COUNT: int = 1 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
@@ -81,8 +81,8 @@ RADAR_RANGE = 0
 RADAR_DETECTION_RANGE = 350
 
 # -------- BROKEN --------
-BROKEN_COUNT = 0 # 0 # 1
-UPDATE_STATE_BROKEN = 150
+BROKEN_COUNT = 1 # 0 # 1
+UPDATE_STATE_BROKEN = 10
 
 
 # -------- Geographic Coordinates --------

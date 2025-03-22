@@ -230,7 +230,7 @@ class EnemyDrone:
         if target_vector.length() == 0:
             return  # Avoid division by zero
         
-        self.info = f"[{self.behavior_type}] aggr.: {self.aggressiveness:.2f}"
+        self.info = f"aggr.: {self.aggressiveness:.2f}"
 
         # ---------------------- Behavior Implementations ----------------------
         if self.behavior_type == "direct":

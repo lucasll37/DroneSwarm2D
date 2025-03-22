@@ -304,66 +304,6 @@ class FriendDrone:
         if self.broken:
             self.update_broken(x_min, x_max, y_min, y_max, distances, detection_range_cells)
             
-    # # -------------------------------------------------------------------------
-    # # Apply Behavior Broken
-    # # -------------------------------------------------------------------------
-    def update_broken(self, x_min: int, x_max: int, y_min: int, y_max: int,
-                    distances: np.ndarray, detection_range_cells: int) -> None:
-        """
-        Para drones quebrados, atualiza os valores das matrizes de detecção (intensidade e direção)
-        somente para as células que estão dentro do raio de detecção, usando valores aleatórios.
-        
-        Essa função mantém os valores gerados por um período determinado (update_state_broken). 
-        Quando esse tempo expira, novas matrizes aleatórias são geradas e os timestamps são atualizados.
-        
-        Args:
-            x_min, x_max, y_min, y_max: Limites da região (em células) que abrange o raio de detecção.
-            distances (np.ndarray): Matriz com as distâncias (em unidades de célula) de cada célula até o centro.
-            detection_range_cells (int): Raio de detecção em unidades de célula.
-        """
-        # Determine a forma da região a ser atualizada
-        region_shape = (x_max - x_min + 1, y_max - y_min + 1)
-        
-        # Se os estados "quebrados" ainda não foram gerados para a região, gere-os
-        if self.broken_enemy_direction is None:
-            self.broken_enemy_intensity, self.broken_enemy_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
-            self.broken_friend_intensity, self.broken_friend_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
-        
-        # Extraia as submatrizes correspondentes à região de interesse
-        region_enemy_intensity = self.enemy_intensity[x_min:x_max+1, y_min:y_max+1]
-        region_enemy_direction = self.enemy_direction[x_min:x_max+1, y_min:y_max+1]
-        region_friend_intensity = self.friend_intensity[x_min:x_max+1, y_min:y_max+1]
-        region_friend_direction = self.friend_direction[x_min:x_max+1, y_min:y_max+1]
-        
-        # Cria uma máscara para as células dentro do raio de detecção
-        mask = distances <= detection_range_cells
-
-        if self.timer_state_broken < self.update_state_broken:
-            # Atualiza as células com valores aleatórios usando np.putmask com np.broadcast_to para as matrizes de direção
-            np.putmask(region_enemy_intensity, mask, self.broken_enemy_intensity[mask])
-            np.putmask(region_enemy_direction,
-                        np.broadcast_to(mask[..., None], region_enemy_direction.shape),
-                        self.broken_enemy_direction)
-            
-            np.putmask(region_friend_intensity, mask, self.broken_friend_intensity[mask])
-            np.putmask(region_friend_direction,
-                        np.broadcast_to(mask[..., None], region_friend_direction.shape),
-                        self.broken_friend_direction)
-            
-            self.timer_state_broken += 1
-            return
-        else:
-            # Quando o timer expira, gere novos estados aleatórios para a região
-            self.broken_enemy_intensity, self.broken_enemy_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
-            self.broken_friend_intensity, self.broken_friend_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
-            
-            # Atualiza os timestamps para a região
-            current_time: int = pygame.time.get_ticks()
-            self.enemy_timestamp[x_min:x_max+1, y_min:y_max+1].fill(current_time)
-            self.friend_timestamp[x_min:x_max+1, y_min:y_max+1].fill(current_time)
-            
-            self.timer_state_broken = 0
-            
     # -------------------------------------------------------------------------
     # Merge Enemy Matrix
     # -------------------------------------------------------------------------
@@ -512,6 +452,66 @@ class FriendDrone:
                 if random.random() > MESSAGE_LOSS_PROBABILITY:
                     self.merge_enemy_matrix(other)
                     self.merge_friend_matrix(other)
+                    
+    # -------------------------------------------------------------------------
+    # Apply Behavior Broken
+    # -------------------------------------------------------------------------
+    def update_broken(self, x_min: int, x_max: int, y_min: int, y_max: int,
+                    distances: np.ndarray, detection_range_cells: int) -> None:
+        """
+        Para drones quebrados, atualiza os valores das matrizes de detecção (intensidade e direção)
+        somente para as células que estão dentro do raio de detecção, usando valores aleatórios.
+        
+        Essa função mantém os valores gerados por um período determinado (update_state_broken). 
+        Quando esse tempo expira, novas matrizes aleatórias são geradas e os timestamps são atualizados.
+        
+        Args:
+            x_min, x_max, y_min, y_max: Limites da região (em células) que abrange o raio de detecção.
+            distances (np.ndarray): Matriz com as distâncias (em unidades de célula) de cada célula até o centro.
+            detection_range_cells (int): Raio de detecção em unidades de célula.
+        """
+        # Determine a forma da região a ser atualizada
+        region_shape = (x_max - x_min + 1, y_max - y_min + 1)
+        
+        # Se os estados "quebrados" ainda não foram gerados para a região, gere-os
+        if self.broken_enemy_direction is None:
+            self.broken_enemy_intensity, self.broken_enemy_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
+            self.broken_friend_intensity, self.broken_friend_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
+        
+        # Extraia as submatrizes correspondentes à região de interesse
+        region_enemy_intensity = self.enemy_intensity[x_min:x_max+1, y_min:y_max+1]
+        region_enemy_direction = self.enemy_direction[x_min:x_max+1, y_min:y_max+1]
+        region_friend_intensity = self.friend_intensity[x_min:x_max+1, y_min:y_max+1]
+        region_friend_direction = self.friend_direction[x_min:x_max+1, y_min:y_max+1]
+        
+        # Cria uma máscara para as células dentro do raio de detecção
+        mask = distances <= detection_range_cells
+
+        if self.timer_state_broken < self.update_state_broken:
+            # Atualiza as células com valores aleatórios usando np.putmask com np.broadcast_to para as matrizes de direção
+            np.putmask(region_enemy_intensity, mask, self.broken_enemy_intensity[mask])
+            np.putmask(region_enemy_direction,
+                        np.broadcast_to(mask[..., None], region_enemy_direction.shape),
+                        self.broken_enemy_direction)
+            
+            np.putmask(region_friend_intensity, mask, self.broken_friend_intensity[mask])
+            np.putmask(region_friend_direction,
+                        np.broadcast_to(mask[..., None], region_friend_direction.shape),
+                        self.broken_friend_direction)
+            
+            self.timer_state_broken += 1
+            return
+        else:
+            # Quando o timer expira, gere novos estados aleatórios para a região
+            self.broken_enemy_intensity, self.broken_enemy_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
+            self.broken_friend_intensity, self.broken_friend_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
+            
+            # Atualiza os timestamps para a região
+            current_time: int = pygame.time.get_ticks()
+            self.enemy_timestamp[x_min:x_max+1, y_min:y_max+1].fill(current_time)
+            self.friend_timestamp[x_min:x_max+1, y_min:y_max+1].fill(current_time)
+            
+            self.timer_state_broken = 0
 
     # -------------------------------------------------------------------------
     # Election Process
@@ -1041,7 +1041,7 @@ class FriendDrone:
             surface.blit(traj_surf, (0, 0))
         
         # Draw detection range.
-        if show_detection:
+        if show_detection or self.broken:
             if self.behavior_type == "AEW":
                 detection_range = AEW_DETECTION_RANGE
             elif self.behavior_type == "RADAR":
@@ -1076,13 +1076,13 @@ class FriendDrone:
             surface.blit(selected_label, (int(self.pos.x) + 20, int(self.pos.y) + 10))
             
         if show_debug:
-            # len_info = len(self.info[0])
-            # debug_label = font.render(self.info[0], True, (255, 215, 0))
-            # surface.blit(debug_label, (int(self.pos.x) - 3.5 * len_info, int(self.pos.y) + 25))
+            len_info = len(self.info[0])
+            debug_label = font.render(self.info[0], True, (255, 215, 0))
+            surface.blit(debug_label, (int(self.pos.x) - 3.5 * len_info, int(self.pos.y) + 25))
             
             if self.info[1] is not None:
-                pygame.draw.circle(surface, (255, 255, 255), (int(self.info[1].x), int(self.info[1].y)), 8)
-                pygame.draw.line(surface, (255, 255, 255), (int(self.pos.x), int(self.pos.y)), (int(self.info[1].x), int(self.info[1].y)), 4)
+                pygame.draw.circle(surface, (255, 255, 255), (int(self.info[1].x), int(self.info[1].y)), 4)
+                pygame.draw.line(surface, (255, 255, 255), (int(self.pos.x), int(self.pos.y)), (int(self.info[1].x), int(self.info[1].y)), 2)
                 
             if self.info[2] is not None:
-                pygame.draw.line(surface, (255, 255, 255), (int(self.interest_point_center[0]), int(self.interest_point_center[1])), (int(self.info[2].x), int(self.info[2].y)), 4)
+                pygame.draw.line(surface, (255, 255, 255), (int(self.interest_point_center[0]), int(self.interest_point_center[1])), (int(self.info[2].x), int(self.info[2].y)), 2)

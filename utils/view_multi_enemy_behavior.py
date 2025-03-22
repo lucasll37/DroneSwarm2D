@@ -83,8 +83,8 @@ behaviors = [
     "circle_wait_advance"
 ]
 
-num_drones = 10       # Number of enemy drones per simulation instance
-num_instances = 1     # Number of simulation instances to generate
+num_drones = len(behaviors)      # Number of enemy drones per simulation instance
+num_instances = 1                # Number of simulation instances to generate
 
 # Define the interest point at the center of the simulation area.
 interest_point = InterestPoint(SIM_WIDTH / 2, SIM_HEIGHT / 2)
@@ -113,7 +113,7 @@ def main() -> None:
     # For each simulation instance:
     for inst in range(num_instances):
         # Randomly select 'num_drones' distinct behaviors.
-        selected_behaviors = random.sample(behaviors, num_drones)
+        selected_behaviors = behaviors # random.sample(behaviors, num_drones)
         
         drones = []            # List to store drone instances.
         trajectories = []      # List to store each drone's trajectory.
