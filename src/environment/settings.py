@@ -20,8 +20,8 @@ EPISODES: int = 400  # Number of episodes to run
 EPSILON: int = 1
 
 # -------- Drone Counts --------
-FRIEND_COUNT: int = 5 # 10
-ENEMY_COUNT: int = 1 # 10
+FRIEND_COUNT: int = 40 # 10
+ENEMY_COUNT: int = 40 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
@@ -43,7 +43,7 @@ GRID_HEIGHT: int = SIM_HEIGHT // CELL_SIZE
 DECAY_FACTOR: float = 0.99 # Factor for exponential decay in detection matrices
 ENEMY_DETECTION_RANGE: int = 100 # 100 # Range (in pixels) for enemy detection
 FRIEND_DETECTION_RANGE: int = 100 # 0 # 20 # 100 # Range (in pixels) for friend detection
-COMMUNICATION_RANGE: int = 250 # 0 # 250  # Communication range between drones
+COMMUNICATION_RANGE: int = 0 # 0 # 250  # Communication range between drones
 MESSAGE_LOSS_PROBABILITY: float = 0.1
 TARGET_INFLUENCE: float = 0.05
 BASE_SPEED: float = 2.0
@@ -67,7 +67,7 @@ NEUTRALIZATION_PROB_FRIEND_ALIVE = 0.5 # 0 # 0.5  # Probabilidade de o amigo sob
 NEUTRALIZATION_PROB_ENEMY_ALIVE = 0.2 # 0 # 0.2   # Probabilidade de o inimigo sobreviver (amigo removido)
 NEUTRALIZATION_PROB_BOTH_DEAD = 1 - (NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALIZATION_PROB_ENEMY_ALIVE)
 INITIAL_DISTANCE = INTERNAL_RADIUS * 1.4
-THRESHOLD_PROJECTION = INTERNAL_RADIUS  # Máxima distância permitida entre o drone e sua projeção na reta do inimigo
+THRESHOLD_PROJECTION = INTERNAL_RADIUS * 0.5  # Máxima distância permitida entre o drone e sua projeção na reta do inimigo
 
 # -------- AEW --------
 AEW_COUNT: int = 0 # 0
@@ -81,8 +81,8 @@ RADAR_RANGE = 0
 RADAR_DETECTION_RANGE = 350
 
 # -------- BROKEN --------
-BROKEN_COUNT = 1 # 0 # 1
-UPDATE_STATE_BROKEN = 10
+BROKEN_COUNT = 0 # 0 # 1
+UPDATE_STATE_BROKEN = 100
 
 
 # -------- Geographic Coordinates --------

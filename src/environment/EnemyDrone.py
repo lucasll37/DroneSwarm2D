@@ -466,7 +466,7 @@ class EnemyDrone:
         # Draw trajectory if enabled
         if show_trajectory and len(self.trajectory) > 1:
             traj_surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-            decay_rate = 0.02  # Constant decay rate for trajectory fading
+            decay_rate = 0.05  # Constant decay rate for trajectory fading
             n = len(self.trajectory)
             for i in range(n - 1):
                 d = n - 1 - i  # Frames elapsed since this segment
@@ -485,11 +485,11 @@ class EnemyDrone:
         
         # Optionally draw detection range as a dashed circle.
         if show_detection:
-            draw_dashed_circle(surface, self.color, (int(self.pos.x), int(self.pos.y)),
+            draw_dashed_circle(surface, (self.color[0], self.color[1], self.color[2], 64), (int(self.pos.x), int(self.pos.y)),
                                ENEMY_DETECTION_RANGE, dash_length=5, space_length=5, width=1)
         
         # Render the drone's ID with transparency.
-        font = pygame.font.SysFont(FONT_FAMILY, 12)
+        font = pygame.font.SysFont(FONT_FAMILY, 10)
         label = font.render(f"ID: E{self.drone_id}", True, (255, 255, 255))
         label.set_alpha(128)
         surface.blit(label, (int(self.pos.x) + 20, int(self.pos.y) - 20))

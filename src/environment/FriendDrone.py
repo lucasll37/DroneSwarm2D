@@ -455,7 +455,7 @@ class FriendDrone:
                     
     # -------------------------------------------------------------------------
     # Apply Behavior Broken
-    # -------------------------------------------------------------------------
+    # -------------------------------------------------------------------------   
     def update_broken(self, x_min: int, x_max: int, y_min: int, y_max: int,
                     distances: np.ndarray, detection_range_cells: int) -> None:
         """
@@ -685,69 +685,77 @@ class FriendDrone:
                 return info, pygame.math.Vector2(0, 0)
             
             # Constrói a grade dos centros das células com base em friend_intensity.
-            grid_x = np.linspace(CELL_SIZE/2, SIM_WIDTH - CELL_SIZE/2, GRID_WIDTH)
-            grid_y = np.linspace(CELL_SIZE/2, SIM_HEIGHT - CELL_SIZE/2, GRID_HEIGHT)
-            X, Y = np.meshgrid(grid_x, grid_y, indexing='ij')
-            distance_matrix = np.sqrt((X - pos.x)**2 + (Y - pos.y)**2)
-            comm_mask = distance_matrix < COMMUNICATION_RANGE
-            active_friend_count = np.sum((friend_intensity >= activation_threshold_position) & comm_mask)
+            # grid_x = np.linspace(CELL_SIZE/2, SIM_WIDTH - CELL_SIZE/2, GRID_WIDTH)
+            # grid_y = np.linspace(CELL_SIZE/2, SIM_HEIGHT - CELL_SIZE/2, GRID_HEIGHT)
+            # X, Y = np.meshgrid(grid_x, grid_y, indexing='ij')
+            # distance_matrix = np.sqrt((X - pos.x)**2 + (Y - pos.y)**2)
+            # comm_mask = distance_matrix < COMMUNICATION_RANGE
+            # active_friend_count = np.sum((friend_intensity >= activation_threshold_position) & comm_mask)
             
-            # Caso 2: Se conectado a pelo menos dois amigos, verifica oportunidade defensiva.
-            if active_friend_count >= 2:
-                candidate_intercepts = []
-                for cell, intensity in np.ndenumerate(enemy_intensity):
-                    if intensity < enemy_threshold:
-                        continue
-                    # Centro da célula correspondente
-                    cell_center = pygame.math.Vector2((cell[0] + 0.5) * CELL_SIZE,
-                                                        (cell[1] + 0.5) * CELL_SIZE)
-                    # Vetor que vai do centro da célula até o ponto de interesse
-                    vec_to_interest = INTEREST_POINT_CENTER - cell_center
-                    if vec_to_interest.length() == 0:
-                        continue
-                    vec_to_interest = vec_to_interest.normalize()
-                    # Vetor de direção detectado para o inimigo nesta célula
-                    enemy_dir = pygame.math.Vector2(*enemy_direction[cell])
-                    if enemy_dir.length() == 0:
-                        continue
-                    enemy_dir = enemy_dir.normalize()
-                    if enemy_dir.dot(vec_to_interest) >= 0.8:
-                        candidate_intercepts.append((cell_center.distance_to(INTEREST_POINT_CENTER),
-                                                    cell_center, enemy_dir))
-                if candidate_intercepts:
-                    candidate_intercepts.sort(key=lambda t: t[0])
-                    chosen_distance, chosen_cell_center, enemy_dir = candidate_intercepts[0]
-                    # Calcula a projeção da posição do drone sobre a reta que passa por chosen_cell_center com direção enemy_dir.
-                    s = (pos - chosen_cell_center).dot(enemy_dir)
-                    projection_point = chosen_cell_center + s * enemy_dir
+            # # Caso 2: Se conectado a pelo menos dois amigos, verifica oportunidade defensiva.
+            # if active_friend_count >= 2:
+            #     candidate_intercepts = []
+            #     for cell, intensity in np.ndenumerate(enemy_intensity):
+            #         if intensity < enemy_threshold:
+            #             continue
+            #         # Centro da célula correspondente
+            #         cell_center = pygame.math.Vector2((cell[0] + 0.5) * CELL_SIZE,
+            #                                             (cell[1] + 0.5) * CELL_SIZE)
+            #         # Vetor que vai do centro da célula até o ponto de interesse
+            #         vec_to_interest = INTEREST_POINT_CENTER - cell_center
+            #         if vec_to_interest.length() == 0:
+            #             continue
+            #         vec_to_interest = vec_to_interest.normalize()
+            #         # Vetor de direção detectado para o inimigo nesta célula
+            #         enemy_dir = pygame.math.Vector2(*enemy_direction[cell])
+            #         if enemy_dir.length() == 0:
+            #             continue
+            #         enemy_dir = enemy_dir.normalize()
+            #         if enemy_dir.dot(vec_to_interest) >= 0.8:
+            #             candidate_intercepts.append((cell_center.distance_to(INTEREST_POINT_CENTER),
+            #                                         cell_center, enemy_dir))
+            #     if candidate_intercepts:
+            #         candidate_intercepts.sort(key=lambda t: t[0])
+            #         chosen_distance, chosen_cell_center, enemy_dir = candidate_intercepts[0]
+            #         # Calcula a projeção da posição do drone sobre a reta que passa por chosen_cell_center com direção enemy_dir.
+            #         s = (pos - chosen_cell_center).dot(enemy_dir)
+            #         projection_point = chosen_cell_center + s * enemy_dir
                     
-                    if pos.distance_to(projection_point) < EPSILON:
-                        info = ("HOLD INTCPT", None, None)
-                        direction = pygame.math.Vector2(0, 0)
-                        return info, direction
+            #         if pos.distance_to(projection_point) < EPSILON:
+            #             info = ("HOLD INTCPT", None, None)
+            #             direction = pygame.math.Vector2(0, 0)
+            #             return info, direction
                     
-                    if chosen_cell_center.distance_to(projection_point) > chosen_cell_center.distance_to(INTEREST_POINT_CENTER):
-                        defensive_point = INTEREST_POINT_CENTER
-                    else:
-                        defensive_point = projection_point
+            #         if chosen_cell_center.distance_to(projection_point) > chosen_cell_center.distance_to(INTEREST_POINT_CENTER):
+            #             defensive_point = INTEREST_POINT_CENTER
+            #         else:
+            #             defensive_point = projection_point
                     
-                    # Se o drone estiver muito distante dessa projeção, permanece em hold.
-                    if (pos - defensive_point).length() > THRESHOLD_PROJECTION:
-                        info = ("HOLD", None, None)
-                        return info, pygame.math.Vector2(0, 0)
+            #         # Se o drone estiver muito distante dessa projeção, permanece em hold.
+            #         if (pos - defensive_point).length() > THRESHOLD_PROJECTION:
+            #             info = ("HOLD", None, None)
+            #             return info, pygame.math.Vector2(0, 0)
                     
-                    info = ("GO HOLD INTCPT", defensive_point, chosen_cell_center)
-                    # info = ("GO HOLD INTCPT", defensive_point, chosen_cell_center)
-                    direction = (defensive_point - pos).normalize()
-                    return info, direction
+            #         info = ("GO HOLD INTCPT", defensive_point, chosen_cell_center)
+            #         # info = ("GO HOLD INTCPT", defensive_point, chosen_cell_center)
+            #         direction = (defensive_point - pos).normalize()
+            #         return info, direction
                 
+            #     info = ("HOLD", None, None)
+            #     return info, pygame.math.Vector2(0, 0)
+            
+            # # Caso 3: Se não estiver conectado a pelo menos dois amigos, retorna a direção para o PI.
+            # info = ("HOLD - NO ENOUGH COMM", None, None)
+            # direction = (INTEREST_POINT_CENTER - pos).normalize()
+            # return info, direction
+            
+            if pos.distance_to(INTEREST_POINT_CENTER) > INITIAL_DISTANCE:
+                info = ("GO HOLD", None, None)
+                direction = (INTEREST_POINT_CENTER - pos).normalize()
+                return info, direction
+            else:
                 info = ("HOLD", None, None)
                 return info, pygame.math.Vector2(0, 0)
-            
-            # Caso 3: Se não estiver conectado a pelo menos dois amigos, retorna a direção para o PI.
-            info = ("HOLD - NO ENOUGH COMM", None, None)
-            direction = (INTEREST_POINT_CENTER - pos).normalize()
-            return info, direction
 
         # Extração e preparação do estado
         pos = np.squeeze(state['pos'])
@@ -953,6 +961,7 @@ class FriendDrone:
             self.vel = direction * FRIEND_SPEED if direction.length() > 0 else pygame.math.Vector2(0, 0)
             
         elif self.behavior_type == "AEW":
+            self.info = ("AEW", None, None)
             # If orbit_radius is not set, initialize it.
             if self.orbit_radius is None:
                 self.orbit_radius = AEW_RANGE
@@ -972,14 +981,17 @@ class FriendDrone:
             self.vel = desired_velocity.normalize() * AEW_SPEED if desired_velocity.length() > 0 else pygame.math.Vector2(0, 0)
             
         elif self.behavior_type == "RADAR":
+            self.info = ("RADAR", None, None)
             self.vel = pygame.math.Vector2(0, 0)
 
         elif self.behavior_type == "debug":
+            self.info = ("DEBUG", None, None)
             target_vector = self.interest_point_center - self.pos
             direction = target_vector.normalize() if target_vector.length() > 0 else pygame.math.Vector2(0, 0)
             self.vel = direction * FRIEND_SPEED if not self.fixed else pygame.math.Vector2(0, 0)
                 
         elif self.behavior_type == "u-debug":
+            self.info = ("U-DEBUG", None, None)
             if not hasattr(self, 'u_debug_phase'):
                 self.u_debug_phase = 0  # 0: moving forward, 1: moving perpendicular, 2: moving backward
                 self.u_debug_timer = 0
@@ -1027,7 +1039,7 @@ class FriendDrone:
         # Draw the trajectory if enabled.
         if show_trajectory and len(self.trajectory) > 1:
             traj_surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-            decay_rate = 0.025
+            decay_rate = 0.04
             n = len(self.trajectory)
             for i in range(n - 1):
                 d = n - 1 - i
@@ -1049,30 +1061,30 @@ class FriendDrone:
             else:
                 detection_range = FRIEND_DETECTION_RANGE
             
-            draw_dashed_circle(surface, self.color, (int(self.pos.x), int(self.pos.y)), detection_range, 5, 5, 1)
+            draw_dashed_circle(surface, (self.color[0], self.color[1], self.color[2], 64), (int(self.pos.x), int(self.pos.y)), detection_range, 5, 5, 1)
             
         # Draw communication range.
         if show_comm_range:
-            draw_dashed_circle(surface, (255, 255, 0), (int(self.pos.x), int(self.pos.y)), COMMUNICATION_RANGE, 5, 5, 1)
+            draw_dashed_circle(surface, (255, 255, 0, 32), (int(self.pos.x), int(self.pos.y)), COMMUNICATION_RANGE, 5, 5, 1)
         
         # Draw the drone image.
         image_rect = self.image.get_rect(center=(int(self.pos.x), int(self.pos.y)))
         surface.blit(self.image, image_rect)
         
         # Render the drone's ID with semi-transparent white text.
-        font: pygame.font.Font = pygame.font.SysFont(FONT_FAMILY, 12)
+        font: pygame.font.Font = pygame.font.SysFont(FONT_FAMILY, 10)
         label = font.render(f"ID: F{self.drone_id}", True, (255, 255, 255))
         label.set_alpha(128)
         surface.blit(label, (int(self.pos.x) + 20, int(self.pos.y) - 20))
         
         # If the drone is a leader, indicate with a "LEADER" label.
         if self.is_leader:
-            leader_label = font.render("LEADER", True, (255, 215, 0))
+            leader_label = font.render("LEADER", True, (0, 255, 0))
             surface.blit(leader_label, (int(self.pos.x) + 20, int(self.pos.y) - 5))
         
         # If the drone is selected, display a "GRAPH" label.
         if self.selected:
-            selected_label = font.render("GRAPH", True, (255, 215, 0))
+            selected_label = font.render("GRAPH", True, (0, 255, 0))
             surface.blit(selected_label, (int(self.pos.x) + 20, int(self.pos.y) + 10))
             
         if show_debug:
@@ -1081,8 +1093,8 @@ class FriendDrone:
             surface.blit(debug_label, (int(self.pos.x) - 3.5 * len_info, int(self.pos.y) + 25))
             
             if self.info[1] is not None:
-                pygame.draw.circle(surface, (255, 255, 255), (int(self.info[1].x), int(self.info[1].y)), 4)
-                pygame.draw.line(surface, (255, 255, 255), (int(self.pos.x), int(self.pos.y)), (int(self.info[1].x), int(self.info[1].y)), 2)
+                pygame.draw.circle(surface, (0, 0, 255), (int(self.info[1].x), int(self.info[1].y)), 4)
+                pygame.draw.line(surface, (0, 0, 255), (int(self.pos.x), int(self.pos.y)), (int(self.info[1].x), int(self.info[1].y)), 2)
                 
             if self.info[2] is not None:
-                pygame.draw.line(surface, (255, 255, 255), (int(self.interest_point_center[0]), int(self.interest_point_center[1])), (int(self.info[2].x), int(self.info[2].y)), 2)
+                pygame.draw.line(surface, (0, 0, 255), (int(self.interest_point_center[0]), int(self.interest_point_center[1])), (int(self.info[2].x), int(self.info[2].y)), 1)
