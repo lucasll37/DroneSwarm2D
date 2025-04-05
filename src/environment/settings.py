@@ -43,7 +43,7 @@ GRID_HEIGHT: int = SIM_HEIGHT // CELL_SIZE
 DECAY_FACTOR: float = 0.99 # Factor for exponential decay in detection matrices
 ENEMY_DETECTION_RANGE: int = 100 # 100 # Range (in pixels) for enemy detection
 FRIEND_DETECTION_RANGE: int = 100 # 0 # 20 # 100 # Range (in pixels) for friend detection
-COMMUNICATION_RANGE: int = 0 # 0 # 250  # Communication range between drones
+COMMUNICATION_RANGE: int = 250 # 0 # 250  # Communication range between drones
 MESSAGE_LOSS_PROBABILITY: float = 0.1
 TARGET_INFLUENCE: float = 0.05
 BASE_SPEED: float = 2.0
@@ -68,9 +68,10 @@ NEUTRALIZATION_PROB_ENEMY_ALIVE = 0.2 # 0 # 0.2   # Probabilidade de o inimigo s
 NEUTRALIZATION_PROB_BOTH_DEAD = 1 - (NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALIZATION_PROB_ENEMY_ALIVE)
 INITIAL_DISTANCE = INTERNAL_RADIUS * 1.4
 THRESHOLD_PROJECTION = INTERNAL_RADIUS * 0.5  # Máxima distância permitida entre o drone e sua projeção na reta do inimigo
+MIN_COMMUNICATION_HOLD: int = 2  # Minimum friend communication hold time
 
 # -------- AEW --------
-AEW_COUNT: int = 0 # 0
+AEW_COUNT: int = 3 # 0
 AEW_RANGE: int = 350
 AEW_SPEED: float = FRIEND_SPEED
 AEW_DETECTION_RANGE: int = 200

@@ -153,7 +153,7 @@ def draw_friend_communication(surface: pygame.Surface, friend_drones: List[Any],
             d1 = friend_drones[i]
             d2 = friend_drones[j]
             if d1.pos.distance_to(d2.pos) <= COMMUNICATION_RANGE:
-                draw_dashed_line(surface, (255, 255, 255, 32), d1.pos, d2.pos,
+                draw_dashed_line(surface, (255, 255, 255, 64), d1.pos, d2.pos,
                                  width=1, dash_length=10, space_length=5)
 
 def draw_direction(surface: pygame.Surface, global_intensity: np.ndarray,
@@ -408,7 +408,7 @@ class AirTrafficEnv:
             pos = center + pygame.math.Vector2(AEW_RANGE * math.cos(angle), AEW_RANGE * math.sin(angle))
             drone = FriendDrone(self.interest_point.center, position=(pos.x, pos.y), behavior_type="AEW")
             self.friend_drones.append(drone)
-                                
+            
         for k in range(FRIEND_COUNT - AEW_COUNT - RADAR_COUNT):
             angle = 2 * math.pi * k / (FRIEND_COUNT - AEW_COUNT - RADAR_COUNT)
             pos = center + pygame.math.Vector2(INITIAL_DISTANCE * math.cos(angle), INITIAL_DISTANCE * math.sin(angle))
@@ -544,7 +544,7 @@ class AirTrafficEnv:
             for drone in self.friend_drones:
                 drone.update(self.enemy_drones, self.friend_drones, self.return_to_base)
                 
-                if self.return_to_base and drone.pos.distance_to(CENTER) < EPSILON:
+                if self.return_to_base and drone.pos.distance_to(CENTER) <= EPSILON:
                     self.friend_drones = [f for f in self.friend_drones if drone.drone_id != f.drone_id]
                     if drone.is_leader:
                         self.leader = None
@@ -554,7 +554,7 @@ class AirTrafficEnv:
             for enemy in self.enemy_drones:
                 detector = None
                 for friend in self.friend_drones:
-                    if enemy.pos.distance_to(friend.pos) < ENEMY_DETECTION_RANGE:
+                    if enemy.pos.distance_to(friend.pos) <= ENEMY_DETECTION_RANGE:
                         detector = friend.pos
                         break
                 enemy.update(detector)
@@ -565,7 +565,7 @@ class AirTrafficEnv:
             # Process enemy attacks on the interest point and remove self-destructing drones.
             surviving_enemies = []
             for enemy in self.enemy_drones:
-                if enemy.pos.distance_to(self.interest_point.center) < INTEREST_POINT_ATTACK_RANGE:
+                if enemy.pos.distance_to(self.interest_point.center) <= INTEREST_POINT_ATTACK_RANGE + EPSILON:
                     self.interest_point.health -= INTEREST_POINT_DAMAGE
                     self.attack_penalty += 1
                     self.sucessful_attacks += 1
@@ -580,10 +580,10 @@ class AirTrafficEnv:
             enemies_to_remove = set()
             for i, friend in enumerate(self.friend_drones):
                 for j, enemy in enumerate(self.enemy_drones):
-                    if friend.pos.distance_to(enemy.pos) < NEUTRALIZATION_RANGE:
+                    if friend.pos.distance_to(enemy.pos) <= NEUTRALIZATION_RANGE:
                         rand_val = random.random()
                         # If the friendly drone is of type AEW, mutual elimination always occurs.
-                        if friend.behavior_type == "AEW" and rand_val < NEUTRALIZATION_PROB_BOTH_DEAD:
+                        if friend.behavior_type == "AEW" and rand_val <= NEUTRALIZATION_PROB_BOTH_DEAD:
                             friends_to_remove.add(i)
                             enemies_to_remove.add(j)
                             if friend.is_leader:
@@ -592,7 +592,7 @@ class AirTrafficEnv:
                                 self.selected_drone = None
                                 
                         # If the friendly drone is of type RADAR, mutual elimination always occurs.
-                        if friend.behavior_type == "RADAR" and rand_val < NEUTRALIZATION_PROB_BOTH_DEAD:
+                        if friend.behavior_type == "RADAR" and rand_val <= NEUTRALIZATION_PROB_BOTH_DEAD:
                             friends_to_remove.add(i)
                             enemies_to_remove.add(j)
                             if friend.is_leader:
@@ -600,9 +600,9 @@ class AirTrafficEnv:
                             if friend.selected:
                                 self.selected_drone = None
                         else:
-                            if rand_val < NEUTRALIZATION_PROB_FRIEND_ALIVE:
+                            if rand_val <= NEUTRALIZATION_PROB_FRIEND_ALIVE:
                                 enemies_to_remove.add(j)
-                            elif rand_val < NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALIZATION_PROB_ENEMY_ALIVE:
+                            elif rand_val <= NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALIZATION_PROB_ENEMY_ALIVE:
                                 friends_to_remove.add(i)
                                 if friend.is_leader:
                                     self.leader = None

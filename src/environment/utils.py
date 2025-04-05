@@ -304,7 +304,7 @@ def can_intercept(chaser_pos: pygame.math.Vector2,
     """
     
     if point_of_interest is None:
-        intercept_direction = INTEREST_POINT_CENTER
+        point_of_interest = INTEREST_POINT_CENTER
         
     # Calcula os coeficientes da equação quadrática
     r = target_pos - chaser_pos
