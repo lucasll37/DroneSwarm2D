@@ -17,11 +17,11 @@ DT_STEP: int = 3/5  # Time step for simulation
 
 # -------- Simulation Parameters --------
 EPISODES: int = 400  # Number of episodes to run
-EPSILON: int = 1
+EPSILON: int = 2
 
 # -------- Drone Counts --------
-FRIEND_COUNT: int = 40 # 10
-ENEMY_COUNT: int = 40 # 10
+FRIEND_COUNT: int = 20 # 10
+ENEMY_COUNT: int = 20 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
@@ -69,9 +69,10 @@ NEUTRALIZATION_PROB_BOTH_DEAD = 1 - (NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALI
 INITIAL_DISTANCE = INTERNAL_RADIUS * 1.4
 THRESHOLD_PROJECTION = INTERNAL_RADIUS * 0.5  # Máxima distância permitida entre o drone e sua projeção na reta do inimigo
 MIN_COMMUNICATION_HOLD: int = 2  # Minimum friend communication hold time
+HOLD_SPREAD: bool = True
 
 # -------- AEW --------
-AEW_COUNT: int = 3 # 0
+AEW_COUNT: int = 0 # 0
 AEW_RANGE: int = 350
 AEW_SPEED: float = FRIEND_SPEED
 AEW_DETECTION_RANGE: int = 200

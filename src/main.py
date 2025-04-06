@@ -63,15 +63,15 @@ def main() -> None:
             sucessful_attacks: int = info['sucessful_attacks']
             interest_point_health: int = info['interest_point_health']
             
-            # Print current episode metrics.
-            print(f"Air Traffic Env - Episode: {episode:3d} | Steps: {n_steps:4d} | Acc. Reward: {accum_reward:7.3f} | "
-                  f"Enemies Shotdown: {enemies_shotdown} | Friends Shotdown: {friends_shotdown} | "
-                  f"Sucessful Attacks: {sucessful_attacks:3d} | IP Health: {interest_point_health}")
+        #     # Print current episode metrics.
+        #     print(f"Air Traffic Env - Episode: {episode:3d} | Steps: {n_steps:4d} | Acc. Reward: {accum_reward:7.3f} | "
+        #           f"Enemies Shotdown: {enemies_shotdown} | Friends Shotdown: {friends_shotdown} | "
+        #           f"Sucessful Attacks: {sucessful_attacks:3d} | IP Health: {interest_point_health}")
         
-        # Print final statistics for the episode.
-        print(f"\n\nFINAL: Air Traffic Env - Episode: {episode:3d} | Steps: {n_steps:4d} | Acc. Reward: {accum_reward:7.3f} | "
-              f"Enemies Shotdown: {enemies_shotdown} | Friends Shotdown: {friends_shotdown} | "
-              f"Sucessful Attacks: {sucessful_attacks:3d} | IP Health: {interest_point_health}\n\n")
+        # # Print final statistics for the episode.
+        # print(f"\n\nFINAL: Air Traffic Env - Episode: {episode:3d} | Steps: {n_steps:4d} | Acc. Reward: {accum_reward:7.3f} | "
+        #       f"Enemies Shotdown: {enemies_shotdown} | Friends Shotdown: {friends_shotdown} | "
+        #       f"Sucessful Attacks: {sucessful_attacks:3d} | IP Health: {interest_point_health}\n\n")
         
     # Close the environment after all episodes have completed.
     env.close()
