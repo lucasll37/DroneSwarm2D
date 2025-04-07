@@ -150,6 +150,9 @@ def planning_policy(state, friend_activation_threshold_position: float = 0.7, en
                 # Componente tangencial: subtrai a parte radial.
                 tangential = repulsion - radial_component
                 direction = tangential.copy()
+                
+                if direction.length() > 1:
+                    direction = direction.normalize()
                     
                 info = ("HOLD SPREAD", None, None, friends_hold)
                     

@@ -116,6 +116,7 @@ def draw_heatmap(surface: pygame.Surface, global_intensity: np.ndarray, base_col
             if intensity > 0.01:
                 if base_color == "red":
                     color: Tuple[int, int, int] = (int(intensity * 255), 0, 0)
+                    
                 elif base_color == "orange":
                     color: Tuple[int, int, int] = (int(intensity * 255), int(intensity * 165), 0)
                 else:
@@ -708,8 +709,9 @@ class AirTrafficEnv:
                 global_enemy_intensity = np.maximum(global_enemy_intensity, drone.enemy_intensity)
                 global_enemy_direction = np.where(np.expand_dims(drone.enemy_intensity, axis=2) > 0,
                                                   drone.enemy_direction, global_enemy_direction)
-                
-            draw_heatmap(self.sim_surface, global_enemy_intensity, "orange") # red
+
+            if self.show_debug:
+                draw_heatmap(self.sim_surface, global_enemy_intensity, "orange") # red
             
             if self.show_arrows:
                 draw_direction(self.sim_surface, global_enemy_intensity, global_enemy_direction, 0.1, show_arrows=self.show_arrows)

@@ -882,12 +882,12 @@ class FriendDrone:
             surface.blit(debug_label, (int(self.pos.x) - 3.5 * len_info, int(self.pos.y) + 25))
             
             if self.info[1] is not None:
-                pygame.draw.circle(surface, (255, 255, 255), (int(self.info[1].x), int(self.info[1].y)), 4)
-                pygame.draw.line(surface, (255, 255, 255), (int(self.pos.x), int(self.pos.y)), (int(self.info[1].x), int(self.info[1].y)), 2)
+                pygame.draw.circle(surface, (255, 215, 0), (int(self.info[1].x), int(self.info[1].y)), 4)
+                pygame.draw.line(surface, (255, 215, 0), (int(self.pos.x), int(self.pos.y)), (int(self.info[1].x), int(self.info[1].y)), 2)
                 
             if self.info[2] is not None:
-                pygame.draw.line(surface, (255, 255, 255), (int(self.interest_point_center[0]), int(self.interest_point_center[1])), (int(self.info[2].x), int(self.info[2].y)), 1)
+                pygame.draw.line(surface, (255, 215, 0), (int(self.interest_point_center[0]), int(self.interest_point_center[1])), (int(self.info[2].x), int(self.info[2].y)), 2)
                 
             # if self.info[3] is not None and self.is_leader:
             #     for hold_friends in self.info[3]:
-            #         pygame.draw.line(surface, (255, 255, 255), (int(self.pos.x), int(self.pos.y)), (int(hold_friends[1].x), int(hold_friends[1].y)), 1)
+            #         pygame.draw.line(surface, (255, 215, 0), (int(self.pos.x), int(self.pos.y)), (int(hold_friends[1].x), int(hold_friends[1].y)), 1)
