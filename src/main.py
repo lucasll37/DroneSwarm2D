@@ -39,9 +39,10 @@ def main() -> None:
     # Create an instance of the AirTrafficEnv.
     # Friend behavior examples: "direct", "zigzag", "spiral", etc.
     # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='AI', enemy_behavior=None)
-    env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=None)
+    env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior="formation")
+    # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=None)
     
-    episodes: int = 5  # Set number of episodes to run
+    episodes: int = 1  # Set number of episodes to run
     
     # Main loop: run for the specified number of episodes.
     for episode in range(episodes):

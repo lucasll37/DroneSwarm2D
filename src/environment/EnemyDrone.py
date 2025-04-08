@@ -55,7 +55,7 @@ class EnemyDrone:
             self.pos = self.random_border_position()
         else:
             self.pos = pygame.math.Vector2(position[0], position[1])
-        
+                
         # Initialize velocity directed toward the interest point.
         target_vector = self.interest_point_center - self.pos
         direction = target_vector.normalize() if target_vector.length() > 0 else pygame.math.Vector2(0, 0)
@@ -70,7 +70,6 @@ class EnemyDrone:
         # Auxiliary attributes for specific behaviors.
         self.phase = 0
         self.timer = 0
-        self.start_delay = random.randint(0, 100) # 0
         
         # Assign behavior type; if none is provided, randomly choose one.
         if behavior_type is None:
@@ -82,6 +81,11 @@ class EnemyDrone:
         else:
             self.behavior_type = behavior_type
 
+        if not self.behavior_type in ["formation"]:
+            self.start_delay = random.randint(0, 100)
+        else:
+            self.start_delay = 0
+            
         self.fixed = fixed
         self.trajectory: List[pygame.math.Vector2] = []
         
@@ -130,6 +134,7 @@ class EnemyDrone:
         current_id = self.__class__.enemy_id_counter
         self.__class__.enemy_id_counter += 1
         return current_id
+    
 
     # -----------------------------------------------------------------------------
     # Update Method
@@ -210,6 +215,10 @@ class EnemyDrone:
             if self.escape_steps_count >= self.escape_steps:
                 self.escape_steps_count = 0
                 self.detector = None
+                
+                if self.behavior_type in ["formation"]:
+                    self.behavior_type = "direct"
+
             return
 
         # Aggressiveness: if detected, decide whether to attack or escape.
@@ -410,6 +419,26 @@ class EnemyDrone:
             offset = math.sin(self.phase) * amplitude
             new_direction = (base_direction + perp * offset).normalize()
             self.vel = new_direction * ENEMY_SPEED
+            
+        elif self.behavior_type == "formation":
+            if not hasattr(self, 'formation_id'):
+                self.formation_id = self.drone_id % ENEMY_COUNT
+                FRONT_FORMATION = 5
+                row = self.formation_id // FRONT_FORMATION
+                column = self.formation_id % FRONT_FORMATION - FRONT_FORMATION // 2
+                
+                self.pos = pygame.math.Vector2(SIM_WIDTH, SIM_HEIGHT // 2 + column * 60)
+                self.start_delay = 40 * row
+                # self.vel = pygame.math.Vector2(-1, 0)
+
+            # self.behavior_type = "direct"
+            if self.pos.distance_to(self.interest_point_center) > INITIAL_DISTANCE:
+                self.vel = pygame.math.Vector2(-1, 0)
+                self.info = f"#{self.formation_id}"
+                
+            else:
+                self.behavior_type = "direct"
+            
 
         elif self.behavior_type == "debug":
             # Debug behavior: move directly toward target or remain fixed.

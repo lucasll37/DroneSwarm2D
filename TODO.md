@@ -9,14 +9,20 @@
 
 # TODO
 
-antes de pagar um drone amigo para perseguidor, verificar se ele é capaz de alcançar o inimigo
+seed para ações aleatórias do 
 
+limitar quantidade de conexões
 
-Agressividade deve ser 1 quando muito próximo da área de interesse
+agregar resultados de simulação com mais informação: tempo em cada estado, numero de conexões, distância percorrida, etc
 
+condição de parada na simulação: sem diferença estatistica entre amostras anteriores e conjunto total com novas amostras
+
+convem ações aleatórias do amigo?
 
 -------------------------------------------------------------
 RL
+
+Behaviorclone do spread e RL
 
 Comando e controle: Eleição de lider para controle de solo
 

@@ -74,8 +74,14 @@ def planning_policy(state, friend_activation_threshold_position: float = 0.7, en
         comm_mask = distance_matrix < COMMUNICATION_RANGE
         active_friend_count = np.sum((friend_intensity >= activation_threshold_position) & comm_mask)
         
-        # Caso 2: Se conectado a pelo menos MIN_COMMUNICATION_HOLD amigos, verifica oportunidade defensiva.
-        if active_friend_count >= MIN_COMMUNICATION_HOLD:
+        # Caso 2: Se o drone não se comunica, retorna para a distância INITIAL_DISTANCE do PI.
+        if MIN_COMMUNICATION_HOLD == 0 and pos.distance_to(INTEREST_POINT_CENTER) > INITIAL_DISTANCE:
+            info = ("HOLD - RETURN", None, None, friends_hold)
+            direction = (INTEREST_POINT_CENTER - pos).normalize()
+            return info, direction
+            
+        # Caso 3: Se conectado a pelo menos MIN_COMMUNICATION_HOLD amigos, verifica oportunidade defensiva.
+        elif active_friend_count >= MIN_COMMUNICATION_HOLD:
             candidate_intercepts = []
             for cell, intensity in np.ndenumerate(enemy_intensity):
                 if intensity < enemy_threshold:
