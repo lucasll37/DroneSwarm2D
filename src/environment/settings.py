@@ -41,9 +41,9 @@ GRID_WIDTH: int = SIM_WIDTH // CELL_SIZE
 GRID_HEIGHT: int = SIM_HEIGHT // CELL_SIZE
 
 DECAY_FACTOR: float = 0.99 # Factor for exponential decay in detection matrices
-FRIEND_DETECTION_RANGE: int = 0 # 0 # 20 # 100 # Range (in pixels) for friend detection
+FRIEND_DETECTION_RANGE: int = 100 # 0 # 20 # 100 # Range (in pixels) for friend detection
 ENEMY_DETECTION_RANGE: int = 100 # Range (in pixels) for enemy detection
-COMMUNICATION_RANGE: int = 250 # 0 # 250  # Communication range between drones
+COMMUNICATION_RANGE: int = 0 # 0 # 250  # Communication range between drones
 MESSAGE_LOSS_PROBABILITY: float = 0.1
 TARGET_INFLUENCE: float = 0.05
 BASE_SPEED: float = 2.0
@@ -78,7 +78,7 @@ AEW_SPEED: float = FRIEND_SPEED
 AEW_DETECTION_RANGE: int = 200
 
 # -------- RADAR --------
-RADAR_COUNT = 1 # 0 # 1
+RADAR_COUNT = 0 # 0 # 1
 RADAR_RANGE = 0
 RADAR_DETECTION_RANGE = 350
 
