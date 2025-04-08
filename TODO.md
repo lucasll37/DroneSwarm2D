@@ -19,6 +19,8 @@ condição de parada na simulação: sem diferença estatistica entre amostras a
 
 convem ações aleatórias do amigo?
 
+uma formação vindo de cada lado
+
 -------------------------------------------------------------
 RL
 

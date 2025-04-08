@@ -72,7 +72,7 @@ MIN_COMMUNICATION_HOLD: int = 0 # 2 # 0 # Minimum friend communication hold time
 HOLD_SPREAD: bool = True
 
 # -------- AEW --------
-AEW_COUNT: int = 0 # 0 # 5
+AEW_COUNT: int = 5 # 0 # 5
 AEW_RANGE: int = 350
 AEW_SPEED: float = FRIEND_SPEED
 AEW_DETECTION_RANGE: int = 200
