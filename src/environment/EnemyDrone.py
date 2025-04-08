@@ -81,7 +81,7 @@ class EnemyDrone:
         else:
             self.behavior_type = behavior_type
 
-        if not self.behavior_type in ["formation"]:
+        if not self.behavior_type in ["formation", "biformation", "focal-direct"]:
             self.start_delay = random.randint(0, 100)
         else:
             self.start_delay = 0
@@ -216,7 +216,7 @@ class EnemyDrone:
                 self.escape_steps_count = 0
                 self.detector = None
                 
-                if self.behavior_type in ["formation"]:
+                if self.behavior_type in ["formation, biformation", "focal-direct"]:
                     self.behavior_type = "direct"
 
             return
@@ -438,8 +438,45 @@ class EnemyDrone:
                 
             else:
                 self.behavior_type = "direct"
-            
+                
+        elif self.behavior_type == "biformation":
+            if not hasattr(self, 'formation_id'):
+                # Atribui um identificador de formação baseado no drone_id e no total de inimigos
+                self.formation_id = self.drone_id % ENEMY_COUNT
+                FRONT_FORMATION = 5
 
+                # Se formation_id for menor que metade do total, o drone inicia pela direita;
+                # caso contrário, inicia pela esquerda.
+                if self.formation_id < ENEMY_COUNT // 2:
+                    # Grupo da direita:
+                    formation_index = self.formation_id
+                    row = formation_index // FRONT_FORMATION
+                    column = formation_index % FRONT_FORMATION - FRONT_FORMATION // 2
+                    self.pos = pygame.math.Vector2(SIM_WIDTH, SIM_HEIGHT // 2 + column * 60)
+                    self.vel = pygame.math.Vector2(-1, 0)
+                    self.start_delay = 40 * row
+                else:
+                    # Grupo da esquerda:
+                    formation_index = self.formation_id - (ENEMY_COUNT // 2)
+                    row = formation_index // FRONT_FORMATION
+                    column = formation_index % FRONT_FORMATION - FRONT_FORMATION // 2
+                    self.pos = pygame.math.Vector2(0, SIM_HEIGHT // 2 + column * 60)
+                    self.vel = pygame.math.Vector2(1, 0)
+                    self.start_delay = 40 * row
+
+            # Enquanto não alcançam o ponto de interesse, os drones mantêm o movimento inicial.
+            if self.pos.distance_to(self.interest_point_center) > INITIAL_DISTANCE:
+                self.info = f"#{self.formation_id}"
+            else:
+                self.behavior_type = "direct"
+                
+        elif self.behavior_type == "focal-direct":
+            # Atribui um identificador de formação baseado no drone_id e no total de inimigos
+            formation_id = self.drone_id % ENEMY_COUNT
+            self.pos = pygame.math.Vector2(SIM_WIDTH, 0)
+            self.start_delay = 20 * formation_id
+            self.behavior_type = "direct"
+                    
         elif self.behavior_type == "debug":
             # Debug behavior: move directly toward target or remain fixed.
             target_direction = target_vector.normalize()

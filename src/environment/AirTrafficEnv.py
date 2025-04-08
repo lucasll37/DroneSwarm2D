@@ -142,6 +142,7 @@ def draw_dashed_line(surface: pygame.Surface, color: Tuple[int, int, int],
         dash_start = start + (dash_length + space_length) * i * displacement.normalize()
         dash_end = dash_start + dash_vector
         pygame.draw.line(surface, color, dash_start, dash_end, width)
+        
 
 def draw_friend_communication(surface: pygame.Surface, friend_drones: List[Any], show_dashed: bool = True) -> None:
     """

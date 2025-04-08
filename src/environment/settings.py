@@ -25,7 +25,7 @@ ENEMY_COUNT: int = 40 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
-INITIAL_AGGRESSIVENESS: float = 0.5
+INITIAL_AGGRESSIVENESS: float = 1 # 0.5 # 1
 ESCAPE_STEPS: int = 40  # Number of steps to escape
 
 # -------- Screen Layout --------
@@ -41,7 +41,7 @@ GRID_WIDTH: int = SIM_WIDTH // CELL_SIZE
 GRID_HEIGHT: int = SIM_HEIGHT // CELL_SIZE
 
 DECAY_FACTOR: float = 0.99 # Factor for exponential decay in detection matrices
-FRIEND_DETECTION_RANGE: int = 100 # 0 # 20 # 100 # Range (in pixels) for friend detection
+FRIEND_DETECTION_RANGE: int = 0 # 0 # 20 # 100 # Range (in pixels) for friend detection
 ENEMY_DETECTION_RANGE: int = 100 # Range (in pixels) for enemy detection
 COMMUNICATION_RANGE: int = 250 # 0 # 250  # Communication range between drones
 MESSAGE_LOSS_PROBABILITY: float = 0.1
@@ -72,13 +72,13 @@ MIN_COMMUNICATION_HOLD: int = 0 # 2 # 0 # Minimum friend communication hold time
 HOLD_SPREAD: bool = True
 
 # -------- AEW --------
-AEW_COUNT: int = 5 # 0 # 5
+AEW_COUNT: int = 0 # 0 # 5
 AEW_RANGE: int = 350
 AEW_SPEED: float = FRIEND_SPEED
 AEW_DETECTION_RANGE: int = 200
 
 # -------- RADAR --------
-RADAR_COUNT = 0 # 0 # 1
+RADAR_COUNT = 1 # 0 # 1
 RADAR_RANGE = 0
 RADAR_DETECTION_RANGE = 350
 
