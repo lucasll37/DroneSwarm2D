@@ -9,10 +9,6 @@
 
 # TODO
 
-
-agregar resultados de simulação com mais informação: tempo em cada estado, numero de conexões, distância percorrida, etc
-
-
 limitar quantidade de conexões (se conectar aos 3 mais próximos)
 
 Drone inimigo alem de ataque desesperado e fuga, implementar continuar trajetória de ataque

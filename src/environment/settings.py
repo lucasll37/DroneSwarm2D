@@ -16,7 +16,7 @@ clock: pygame.time.Clock = pygame.time.Clock()
 DT_STEP: int = 3/5  # Time step for simulation
 
 # -------- Simulation Parameters --------
-EPISODES: int = 43  # Number of episodes to run
+EPISODES: int = 2  # Number of episodes to run
 EPSILON: int = 2
 
 # -------- Drone Counts --------
@@ -25,7 +25,7 @@ ENEMY_COUNT: int = 1 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
-INITIAL_AGGRESSIVENESS: float = 1 # 0.5 # 1
+INITIAL_AGGRESSIVENESS: float = 0.5 # 0.5 # 1
 ESCAPE_STEPS: int = 40  # Number of steps to escape
 
 # -------- Screen Layout --------
@@ -88,10 +88,9 @@ UPDATE_STATE_BROKEN = 100
 
 # DMZ
 DMZ = [
-    (SIM_WIDTH * 0.25, SIM_HEIGHT * 0.25, 80),
-    (SIM_WIDTH * 0.65, SIM_HEIGHT * 0.35, 60),
-    (SIM_WIDTH * 0.40, SIM_HEIGHT * 0.75, 45),
-    (SIM_WIDTH * 0.80, SIM_HEIGHT * 0.75, 85)
+    (SIM_WIDTH * 0.25, SIM_HEIGHT * 0.25, 60),
+    (SIM_WIDTH * 0.65, SIM_HEIGHT * 0.35, 40),
+    (SIM_WIDTH * 0.55, SIM_HEIGHT * 0.75, 80)
 ]
 
 

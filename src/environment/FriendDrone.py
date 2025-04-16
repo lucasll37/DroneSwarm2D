@@ -96,9 +96,12 @@ class FriendDrone:
         self.enemy_detection_confidence = np.zeros((GRID_WIDTH, GRID_HEIGHT))
         # PROTO ###############
         
+        self.state_history = {}
+        self.current_state = ""
+        self.total_steps = 0 
+        self.messages_sent = 0
         self.distance_traveled = 0
         self.last_position = pygame.math.Vector2(position[0], position[1])
-        self.messages_sent = 0
         
         # Detection matrices
         self.enemy_intensity: np.ndarray = np.zeros((GRID_WIDTH, GRID_HEIGHT))
@@ -149,7 +152,6 @@ class FriendDrone:
         """
         self.enemy_intensity *= DECAY_FACTOR
         self.friend_intensity *= DECAY_FACTOR
-        
         
     # PROTO ########################  
     def update_passive_detection_and_triangulate(self, enemy_drones: List[Any], friend_drones: List[Any]) -> None:
@@ -952,56 +954,56 @@ class FriendDrone:
             
             self.timer_state_broken = 0
 
-    # -------------------------------------------------------------------------
-    # Election Process
-    # -------------------------------------------------------------------------
-    def start_election(self, all_friend_drones: List[Any]) -> None:
-        """
-        Initiates a distributed election among friend drones.
+    # # -------------------------------------------------------------------------
+    # # Election Process
+    # # -------------------------------------------------------------------------
+    # def start_election(self, all_friend_drones: List[Any]) -> None:
+    #     """
+    #     Initiates a distributed election among friend drones.
         
-        Args:
-            all_friend_drones (List[Any]): List of all friend drones.
-        """
-        if self.in_election:
-            return
-        self.in_election = True
-        responses: List[bool] = []
-        for other in all_friend_drones:
-            if other.drone_id > self.drone_id:
-                response = other.receive_election_message(self.drone_id, all_friend_drones)
-                responses.append(response)
-        if not any(responses):
-            self.is_leader = True
-            self.leader_id = self.drone_id
-            for other in all_friend_drones:
-                if other is not self:
-                    other.set_leader(self.drone_id)
-        self.in_election = False
+    #     Args:
+    #         all_friend_drones (List[Any]): List of all friend drones.
+    #     """
+    #     if self.in_election:
+    #         return
+    #     self.in_election = True
+    #     responses: List[bool] = []
+    #     for other in all_friend_drones:
+    #         if other.drone_id > self.drone_id:
+    #             response = other.receive_election_message(self.drone_id, all_friend_drones)
+    #             responses.append(response)
+    #     if not any(responses):
+    #         self.is_leader = True
+    #         self.leader_id = self.drone_id
+    #         for other in all_friend_drones:
+    #             if other is not self:
+    #                 other.set_leader(self.drone_id)
+    #     self.in_election = False
 
-    def receive_election_message(self, sender_id: int, all_friend_drones: List[Any]) -> bool:
-        """
-        Receives an election message from another drone.
+    # def receive_election_message(self, sender_id: int, all_friend_drones: List[Any]) -> bool:
+    #     """
+    #     Receives an election message from another drone.
         
-        Args:
-            sender_id (int): The sender's ID.
-            all_friend_drones (List[Any]): List of all friend drones.
+    #     Args:
+    #         sender_id (int): The sender's ID.
+    #         all_friend_drones (List[Any]): List of all friend drones.
         
-        Returns:
-            bool: True if the message is received.
-        """
-        if sender_id < self.drone_id and not self.in_election:
-            self.start_election(all_friend_drones)
-        return True
+    #     Returns:
+    #         bool: True if the message is received.
+    #     """
+    #     if sender_id < self.drone_id and not self.in_election:
+    #         self.start_election(all_friend_drones)
+    #     return True
 
-    def set_leader(self, leader_id: int) -> None:
-        """
-        Sets the leader for this drone.
+    # def set_leader(self, leader_id: int) -> None:
+    #     """
+    #     Sets the leader for this drone.
         
-        Args:
-            leader_id (int): The leader's ID.
-        """
-        self.leader_id = leader_id
-        self.is_leader = (self.drone_id == leader_id)
+    #     Args:
+    #         leader_id (int): The leader's ID.
+    #     """
+    #     self.leader_id = leader_id
+    #     self.is_leader = (self.drone_id == leader_id)
 
     # -------------------------------------------------------------------------
     # Action Execution
@@ -1026,12 +1028,15 @@ class FriendDrone:
         if self.pos.x < 0:
             self.pos.x = 0
             self.vel.x = abs(self.vel.x)
+            
         elif self.pos.x > SIM_WIDTH:
             self.pos.x = SIM_WIDTH
             self.vel.x = -abs(self.vel.x)
+            
         if self.pos.y < 0:
             self.pos.y = 0
             self.vel.y = abs(self.vel.y)
+            
         elif self.pos.y > SIM_HEIGHT:
             self.pos.y = SIM_HEIGHT
             self.vel.y = -abs(self.vel.y)
@@ -1054,6 +1059,7 @@ class FriendDrone:
             enemy_drones (List[Any]): List of enemy drones.
             friend_drones (List[Any]): List of friend drones.
         """
+        self.total_steps += 1
         self.return_to_base = return_to_base
         
         self.decay_matrices()
@@ -1071,6 +1077,28 @@ class FriendDrone:
         self.last_position = self.pos.copy()
         
         self.trajectory.append(self.pos.copy())
+        
+        # Incrementar contador para o estado atual
+        if self.current_state:
+            if self.current_state in self.state_history:
+                self.state_history[self.current_state] += 1
+            else:
+                self.state_history[self.current_state] = 1
+                
+                
+    def get_state_percentages(self) -> dict:
+        """
+        Calcula a porcentagem de steps em cada estado.
+        """
+        if self.total_steps == 0:
+            return {}
+            
+        # Calcular porcentagens
+        percentages = {}
+        for state, count in self.state_history.items():
+            percentages[state] = (count / self.total_steps) * 100
+                
+        return percentages
     
     # -------------------------------------------------------------------------
     # Artificial Inteligence Policy (Class Method)
@@ -1171,7 +1199,7 @@ class FriendDrone:
     def apply_behavior(self) -> None:
         """
         Updates the drone's velocity based on its behavior type.
-        """
+        """        
         if self.behavior_type == "planning":
             # Generate the state from the detection matrices.
             state = {
@@ -1181,8 +1209,10 @@ class FriendDrone:
                 'friend_direction': np.expand_dims(self.friend_direction, axis=0),
                 'enemy_direction': np.expand_dims(self.enemy_direction, axis=0)
             }
+            
             self.info, direction = planning_policy(state)
             self.vel = direction * FRIEND_SPEED if direction.length() > 0 else pygame.math.Vector2(0, 0)
+            self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
             
         elif self.behavior_type == "AI":
             # Generate the state from the detection matrices.
@@ -1193,8 +1223,10 @@ class FriendDrone:
                 'friend_direction': np.expand_dims(self.friend_direction, axis=0),
                 'enemy_direction': np.expand_dims(self.enemy_direction, axis=0)
             }
+            
             self.info, direction = self.ai_policy(state)
             self.vel = direction * FRIEND_SPEED if direction.length() > 0 else pygame.math.Vector2(0, 0)
+            self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
             
         elif self.behavior_type == "AEW":
             self.info = ("AEW", None, None, None)
@@ -1215,16 +1247,19 @@ class FriendDrone:
             tangential_velocity = tangent * AEW_SPEED
             desired_velocity = tangential_velocity + radial_correction
             self.vel = desired_velocity.normalize() * AEW_SPEED if desired_velocity.length() > 0 else pygame.math.Vector2(0, 0)
+            self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
             
         elif self.behavior_type == "RADAR":
             self.info = ("RADAR", None, None, None)
             self.vel = pygame.math.Vector2(0, 0)
+            self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
 
         elif self.behavior_type == "debug":
             self.info = ("DEBUG", None, None, None)
             target_vector = self.interest_point_center - self.pos
             direction = target_vector.normalize() if target_vector.length() > 0 else pygame.math.Vector2(0, 0)
             self.vel = direction * FRIEND_SPEED if not self.fixed else pygame.math.Vector2(0, 0)
+            self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
                 
         elif self.behavior_type == "u-debug":
             self.info = ("U-DEBUG", None, None, None)
@@ -1233,7 +1268,7 @@ class FriendDrone:
                 self.u_debug_timer = 0
                 self.forward_steps = 300
                 self.perp_steps = 40
-
+                
             target_vector = self.interest_point_center - self.pos
             target_direction = target_vector.normalize()
             
@@ -1258,6 +1293,8 @@ class FriendDrone:
                         self.vel = pygame.math.Vector2(0, 0)
             else:
                 self.vel = pygame.math.Vector2(0, 0)
+                
+            self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
                 
     def draw_passive_detection(self, surface: pygame.Surface) -> None:
         """

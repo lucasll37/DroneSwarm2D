@@ -55,7 +55,8 @@ class DemilitarizedZone:
         """
         # Desenhar círculo semi-transparente
         alpha_surface = pygame.Surface((int(self.radius * 2), int(self.radius * 2)), pygame.SRCALPHA)
-        fill_color = (self.color[0], self.color[1], self.color[2], 50)
+        fill_color = (self.color[0], self.color[1], self.color[2], 30)
+        alpha_line = 50
         
         pygame.draw.circle(alpha_surface, fill_color, 
                          (int(self.radius), int(self.radius)), int(self.radius))
@@ -64,15 +65,15 @@ class DemilitarizedZone:
                    (int(self.center.x - self.radius), int(self.center.y - self.radius)))
         
         # Desenhar borda do círculo
-        pygame.draw.circle(surface, self.color, 
+        pygame.draw.circle(surface, (self.color[0], self.color[1], self.color[2], alpha_line), 
                          (int(self.center.x), int(self.center.y)), int(self.radius), 2)
         
         # Desenhar símbolo de "não engajamento" (um X)
         line_length = self.radius * 0.7
-        pygame.draw.line(surface, self.color,
+        pygame.draw.line(surface, (self.color[0], self.color[1], self.color[2], alpha_line),
                         (int(self.center.x - line_length), int(self.center.y - line_length)),
                         (int(self.center.x + line_length), int(self.center.y + line_length)), 2)
-        pygame.draw.line(surface, self.color,
+        pygame.draw.line(surface, (self.color[0], self.color[1], self.color[2], alpha_line),
                         (int(self.center.x + line_length), int(self.center.y - line_length)),
                         (int(self.center.x - line_length), int(self.center.y + line_length)), 2)
         

@@ -571,6 +571,7 @@ class AirTrafficEnv:
             
             self.messages_exchanged = 0
             self.active_connections = 0
+            self.total_distance_traveled = 0
             
             self.current_time += timedelta(seconds=DT_STEP)
             for drone in self.friend_drones:
@@ -711,16 +712,30 @@ class AirTrafficEnv:
                     drone.pos.x, drone.pos.y, 0,
                     drone.vel.x, drone.vel.y, 0
                 ))
+                
         self.render(self.mode)
         obs: np.ndarray = self._get_observation()
         done: bool = self.current_step >= self.max_steps or len(self.enemy_drones) == 0
+
+        # Coletar porcentagens de estado de todos os drones
+        state_percentages = {}
+        for drone in self.friend_drones:
+            drone_percentages = drone.get_state_percentages()
+            for state, percentage in drone_percentages.items():
+                if state in state_percentages:
+                    state_percentages[state] += percentage / len(self.friend_drones)
+                else:
+                    state_percentages[state] = percentage / len(self.friend_drones)
+        
         info: dict = {
             "current_step": self.current_step,
             "accum_reward": self.accum_reward,
             "enemies_shotdown": ENEMY_COUNT - len(self.enemy_drones),
             "friends_shotdown": FRIEND_COUNT - len(self.friend_drones),
             "sucessful_attacks": self.sucessful_attacks,
-            "interest_point_health": self.interest_point.health
+            "interest_point_health": self.interest_point.health,
+            "state_percentages": state_percentages,
+            "total_distance_traveled": self.total_distance_traveled
         }
         
         if done and self.export_to_tacview:
