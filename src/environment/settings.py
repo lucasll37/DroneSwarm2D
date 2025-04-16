@@ -20,8 +20,8 @@ EPISODES: int = 43  # Number of episodes to run
 EPSILON: int = 2
 
 # -------- Drone Counts --------
-FRIEND_COUNT: int = 40 # 10
-ENEMY_COUNT: int = 40 # 10
+FRIEND_COUNT: int = 4 # 10
+ENEMY_COUNT: int = 1 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
@@ -41,14 +41,14 @@ GRID_WIDTH: int = SIM_WIDTH // CELL_SIZE
 GRID_HEIGHT: int = SIM_HEIGHT // CELL_SIZE
 
 DECAY_FACTOR: float = 0.99 # Factor for exponential decay in detection matrices
-FRIEND_DETECTION_RANGE: int = 100 # 0 # 20 # 100 # Range (in pixels) for friend detection
+FRIEND_DETECTION_RANGE: int = 250 # 0 # 20 # 100 # Range (in pixels) for friend detection
 ENEMY_DETECTION_RANGE: int = 100 # Range (in pixels) for enemy detection
-COMMUNICATION_RANGE: int = 0 # 0 # 250  # Communication range between drones
+COMMUNICATION_RANGE: int = 250 # 0 # 250  # Communication range between drones
 MESSAGE_LOSS_PROBABILITY: float = 0.1
 TARGET_INFLUENCE: float = 0.05
 BASE_SPEED: float = 2.0
 ENEMY_SPEED: float = BASE_SPEED
-FRIEND_SPEED: float = 1.1 * BASE_SPEED
+FRIEND_SPEED: float = 1 * BASE_SPEED # 1.1
 PLOT_THRESHOLD: float = 0.05
 
 # -------- Interest Point Constants --------
@@ -85,6 +85,14 @@ RADAR_DETECTION_RANGE = 350
 # -------- BROKEN --------
 BROKEN_COUNT = 0 # 0 # 1
 UPDATE_STATE_BROKEN = 100
+
+# DMZ
+DMZ = [
+    (SIM_WIDTH * 0.25, SIM_HEIGHT * 0.25, 80),
+    (SIM_WIDTH * 0.65, SIM_HEIGHT * 0.35, 60),
+    (SIM_WIDTH * 0.40, SIM_HEIGHT * 0.75, 45),
+    (SIM_WIDTH * 0.80, SIM_HEIGHT * 0.75, 85)
+]
 
 
 # -------- Geographic Coordinates --------

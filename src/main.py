@@ -23,7 +23,7 @@ if config_dir not in sys.path:
 
 # Project-specific imports
 from AirTrafficEnv import AirTrafficEnv
-from settings import EPISODES
+from settings import *
 
 # -----------------------------------------------------------------------------
 # Main Function
@@ -38,9 +38,9 @@ def main() -> None:
     """
     # Create an instance of the AirTrafficEnv.
     # Friend behavior examples: "direct", "zigzag", "spiral", etc.
-    # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='AI', enemy_behavior=None)
-    env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior="formation")
-    # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=None)
+    # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='AI', enemy_behavior=None, demilitarized_zones=DMZ)
+    # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior="formation", demilitarized_zones=DMZ)
+    env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ)
     
     episodes: int = 1  # Set number of episodes to run
     

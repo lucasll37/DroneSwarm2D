@@ -9,35 +9,35 @@
 
 # TODO
 
-seed para ações aleatórias do 
-
-limitar quantidade de conexões
 
 agregar resultados de simulação com mais informação: tempo em cada estado, numero de conexões, distância percorrida, etc
 
+
+limitar quantidade de conexões (se conectar aos 3 mais próximos)
+
+Drone inimigo alem de ataque desesperado e fuga, implementar continuar trajetória de ataque
+
 condição de parada na simulação: sem diferença estatistica entre amostras anteriores e conjunto total com novas amostras
 
-convem ações aleatórias do amigo?
+seed para ações aleatórias do drone inimigo
 
-uma formação vindo de cada lado
+Implementar anti-colisão (para responder pergunta de curioso)
+
+reescrever em cython
+
+Escrever README
 
 -------------------------------------------------------------
 RL
 
 Behaviorclone do spread e RL
-
-Comando e controle: Eleição de lider para controle de solo
-
-Implementar anti-colisão (para responder pergunta de curioso)
-
-Escrever README
 -------------------------------------------------------------
 
-2)	Escrever TG 1 – Abril
-3)	Escrever TG 2 – Maio
-4)  Revisão Literária RL - Junho
-6)	Formular uma política baseada em RL - Agosto
-7)	Escrever Dissertação – Setembro e Outubro
+2)	Escrever TG 1 – Maio
+3)	Escrever TG 2 – Junho
+4)  Revisão Literária RL - Agosto
+6)	Formular uma política baseada em RL - Setembro
+7)	Escrever Dissertação - Outubro e Novembro
 
 
 --------------------------------------

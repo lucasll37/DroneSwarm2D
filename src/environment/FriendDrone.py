@@ -17,9 +17,11 @@ import sys
 import numpy as np
 import pygame
 from typing import Optional, Tuple, List, Any
+import itertools
 
 from settings import *
-from utils import draw_dashed_circle, load_svg_as_surface, pos_to_cell, intercept_direction, load_best_model, generate_sparse_matrix
+from utils import draw_dashed_circle, load_svg_as_surface, pos_to_cell, \
+    intercept_direction, load_best_model, generate_sparse_matrix, draw_dashed_line
 from distributedDefensiveAlgorithm import planning_policy
 
 # Add configuration directory to the system path if not already present.
@@ -45,7 +47,9 @@ class FriendDrone:
     # -------------------------------------------------------------------------
     # Initialization
     # -------------------------------------------------------------------------
-    def __init__(self, interest_point_center, position: Tuple, behavior_type: str = "planning", fixed: bool = False, broken: bool = False) -> None:
+    def __init__(
+        self, interest_point_center, position: Tuple, behavior_type: str = "planning",
+        fixed: bool = False, broken: bool = False) -> None:
         """
         Initializes the drone with its starting position, interest point, and behavior type.
         
@@ -86,7 +90,16 @@ class FriendDrone:
         self.aux_friend_detections: dict = {}
         self.current_enemy_pos_detection: dict = {}
         self.current_friend_pos_detection: dict = {}
-
+        
+        # PROTO ###############
+        self.enemy_direction_only = np.zeros((GRID_WIDTH, GRID_HEIGHT, 2))  # Vetor unitário de direção
+        self.enemy_detection_confidence = np.zeros((GRID_WIDTH, GRID_HEIGHT))
+        # PROTO ###############
+        
+        self.distance_traveled = 0
+        self.last_position = pygame.math.Vector2(position[0], position[1])
+        self.messages_sent = 0
+        
         # Detection matrices
         self.enemy_intensity: np.ndarray = np.zeros((GRID_WIDTH, GRID_HEIGHT))
         self.enemy_direction: np.ndarray = np.zeros((GRID_WIDTH, GRID_HEIGHT, 2))
@@ -95,7 +108,6 @@ class FriendDrone:
         self.friend_direction: np.ndarray = np.zeros((GRID_WIDTH, GRID_HEIGHT, 2))
         self.friend_timestamp: np.ndarray = np.zeros((GRID_WIDTH, GRID_HEIGHT))
         
-                    
         if self.behavior_type == "RADAR":
             desired_width = int(SIM_WIDTH * 0.03)
             aspect_ratio = self.original_radar_image.get_height() / self.original_radar_image.get_width()
@@ -113,7 +125,7 @@ class FriendDrone:
             aspect_ratio = self.original_drone_image.get_height() / self.original_drone_image.get_width()
             desired_height = int(desired_width * aspect_ratio)
             self.image = pygame.transform.scale(self.original_drone_image, (desired_width, desired_height))
-
+            
     # -------------------------------------------------------------------------
     # Unique ID Assignment
     # -------------------------------------------------------------------------
@@ -137,30 +149,364 @@ class FriendDrone:
         """
         self.enemy_intensity *= DECAY_FACTOR
         self.friend_intensity *= DECAY_FACTOR
+        
+        
+    # PROTO ########################  
+    def update_passive_detection_and_triangulate(self, enemy_drones: List[Any], friend_drones: List[Any]) -> None:
+        """
+        Implementa detecção passiva (apenas direção) e triangulação de forma distribuída,
+        sem depender de um elemento central. Cada drone executa este algoritmo independentemente,
+        usando apenas as informações disponíveis através de sua rede de comunicação local.
+        
+        Args:
+            enemy_drones (List[Any]): Lista de drones inimigos no ambiente.
+            friend_drones (List[Any]): Lista de drones amigos para comunicação.
+        """
+        # 1. Detectar direções (sem distâncias) dos inimigos dentro do alcance
+        current_time = pygame.time.get_ticks()
+        self.passive_detections = {}  # {direction_hash: (direction, timestamp)}
+        
+        if not hasattr(self, 'direction_history'):
+            self.direction_history = {}  # {direction_hash: (direction, timestamp, source_drone_id)}
+            
+        if not hasattr(self, 'triangulated_targets'):
+            self.triangulated_targets = {}  # {target_id: (position, confidence, last_update_time)}
+        
+        # Atualizar o histórico com as próprias detecções
+        for enemy in enemy_drones:
+            delta = enemy.pos - self.pos
+            distance = delta.length()
+            
+            # Verifica se o inimigo está dentro do alcance de detecção
+            if self.behavior_type == "AEW":
+                detection_range = AEW_DETECTION_RANGE
+            elif self.behavior_type == "RADAR":
+                detection_range = RADAR_DETECTION_RANGE
+            else:
+                detection_range = FRIEND_DETECTION_RANGE
+                
+            if distance <= detection_range and distance > 0:
+                # Armazena apenas a direção normalizada (sem distância)
+                direction = delta.normalize()
+                
+                # Criar um hash para esta direção (discretização do ângulo)
+                angle = math.atan2(direction.y, direction.x)
+                angle_discrete = round(angle / 0.01) * 0.01  # Discretizar a cada 0.01 radianos
+                direction_hash = f"{angle_discrete:.2f}"
+                
+                # Armazenar no dicionário de detecções passivas
+                self.passive_detections[direction_hash] = (direction, current_time)
+                
+                # Atualizar o histórico de direções
+                self.direction_history[direction_hash] = (direction, current_time, id(self))
+        
+        # 2. Comunicar e receber detecções de drones amigos próximos
+        for friend in friend_drones:
+            if friend is self or friend.pos.distance_to(self.pos) > COMMUNICATION_RANGE:
+                continue
+                
+            # Compartilhar detecções passivas
+            if hasattr(friend, 'passive_detections'):
+                for direction_hash, (direction, timestamp) in friend.passive_detections.items():
+                    # Só aceitar detecções relativamente recentes (menos de 2 segundos)
+                    if current_time - timestamp < 2000:
+                        # Se não temos esta direção ou a nossa é mais antiga, atualizar
+                        if direction_hash not in self.direction_history or \
+                        timestamp > self.direction_history[direction_hash][1]:
+                            self.direction_history[direction_hash] = (direction, timestamp, id(friend))
+            
+            # Compartilhar alvos já triangulados
+            if hasattr(friend, 'triangulated_targets'):
+                for target_id, (position, confidence, last_update) in friend.triangulated_targets.items():
+                    # Só aceitar triangulações recentes e com confiança razoável
+                    if current_time - last_update < 3000 and confidence > 0.5:
+                        # Se não temos este alvo ou o nosso é mais antigo, atualizar
+                        if target_id not in self.triangulated_targets or \
+                        last_update > self.triangulated_targets[target_id][2]:
+                            self.triangulated_targets[target_id] = (position, confidence, last_update)
+        
+        # 3. Tentar triangular com as direções disponíveis
+        # Agrupar detectores por posição para cada direção
+        direction_detectors = {}  # {direction_hash: [(detector_id, pos, direction, timestamp)]}
+        
+        for direction_hash, (direction, timestamp, detector_id) in self.direction_history.items():
+            # Encontrar a posição do detector
+            detector_pos = None
+            if detector_id == id(self):
+                detector_pos = self.pos
+            else:
+                for friend in friend_drones:
+                    if id(friend) == detector_id:
+                        detector_pos = friend.pos
+                        break
+            
+            if detector_pos:
+                if direction_hash not in direction_detectors:
+                    direction_detectors[direction_hash] = []
+                direction_detectors[direction_hash].append((detector_id, detector_pos, direction, timestamp))
+        
+        # 4. Agrupar direções em potenciais alvos
+        potential_targets = {}  # {target_id: [(detector_id, pos, direction, timestamp)]}
+        target_counter = 0
+        
+        # Para cada direção, verificar compatibilidade com outras direções
+        for dir_hash1, detectors1 in direction_detectors.items():
+            for detector_id1, pos1, dir1, timestamp1 in detectors1:
+                # Verificar se já foi atribuído a algum alvo
+                already_assigned = False
+                for target_detectors in potential_targets.values():
+                    if any(did == detector_id1 and dhash == dir_hash1 
+                        for did, dhash, _, _, _ in target_detectors):
+                        already_assigned = True
+                        break
+                
+                if already_assigned:
+                    continue
+                
+                # Tentar formar um novo grupo de detecções compatíveis
+                compatible_detections = [(detector_id1, dir_hash1, pos1, dir1, timestamp1)]
+                
+                for dir_hash2, detectors2 in direction_detectors.items():
+                    if dir_hash1 == dir_hash2:
+                        continue
+                        
+                    for detector_id2, pos2, dir2, timestamp2 in detectors2:
+                        # Não incluir o mesmo detector duas vezes
+                        if detector_id2 == detector_id1:
+                            continue
+                            
+                        # Verificar compatibilidade
+                        if self._directions_compatible(pos1, dir1, pos2, dir2):
+                            compatible_detections.append((detector_id2, dir_hash2, pos2, dir2, timestamp2))
+                
+                # Se temos pelo menos 3 detectores compatíveis, criar um novo alvo potencial
+                if len(compatible_detections) >= 3:
+                    # Assegurar que são 3 drones distintos
+                    unique_detectors = set(did for did, _, _, _, _ in compatible_detections)
+                    if len(unique_detectors) >= 3:
+                        target_counter += 1
+                        potential_targets[target_counter] = compatible_detections
+        
+        # 5. Triangular posições para alvos potenciais
+        for target_id, compatible_detections in potential_targets.items():
+            position_estimates = []
+            
+            # Triangular com todos os pares possíveis
+            for i in range(len(compatible_detections)):
+                for j in range(i+1, len(compatible_detections)):
+                    _, _, pos1, dir1, timestamp1 = compatible_detections[i]
+                    _, _, pos2, dir2, timestamp2 = compatible_detections[j]
+                    
+                    position = self._triangulate_position(pos1, dir1, pos2, dir2)
+                    
+                    if position:
+                        # Calcular confiança baseada na recência
+                        recency1 = max(0, 1 - (current_time - timestamp1) / 1000)
+                        recency2 = max(0, 1 - (current_time - timestamp2) / 1000)
+                        confidence = recency1 * recency2
+                        
+                        position_estimates.append((position, confidence))
+            
+            if position_estimates:
+                # Calcular média ponderada das posições estimadas
+                total_confidence = sum(conf for _, conf in position_estimates)
+                if total_confidence > 0:
+                    weighted_pos = pygame.math.Vector2(0, 0)
+                    for pos, conf in position_estimates:
+                        weighted_pos += pos * (conf / total_confidence)
+                    
+                    # Calcular confiança global baseada no número de detectores e confiança média
+                    # Número de detectores únicos
+                    unique_detectors = set(did for did, _, _, _, _ in compatible_detections)
+                    detector_factor = min(1.0, len(unique_detectors) / 5)  # Normalizado até 5 detectores
+                    
+                    overall_confidence = (total_confidence / len(position_estimates)) * detector_factor
+                    
+                    # Armazenar o alvo triangulado
+                    stable_target_id = f"target_{hash(str(weighted_pos))}"
+                    self.triangulated_targets[stable_target_id] = (weighted_pos, overall_confidence, current_time)
+        
+        # 6. Limpar alvos e direções antigas
+        # Remover direções antigas do histórico
+        old_directions = [hash_key for hash_key, (_, timestamp, _) in self.direction_history.items() 
+                        if current_time - timestamp > 3000]  # 3 segundos
+        for hash_key in old_directions:
+            self.direction_history.pop(hash_key, None)
+        
+        # Remover alvos antigos
+        old_targets = [tid for tid, (_, _, timestamp) in self.triangulated_targets.items() 
+                    if current_time - timestamp > 5000]  # 5 segundos
+        for tid in old_targets:
+            self.triangulated_targets.pop(tid, None)
+        
+        # 7. Atualizar as estruturas de dados existentes com os alvos triangulados
+        for target_id, (position, confidence, _) in self.triangulated_targets.items():
+            # Converter a posição para índice de célula da grade
+            cell = pos_to_cell(position)
+            
+            # Atualizar as estruturas existentes de detecção
+            self.enemy_intensity[cell] = confidence  # Usando confiança como intensidade
+            
+            # Estimar a direção de movimento (se tivermos histórico)
+            if hasattr(self, 'previous_triangulated') and target_id in self.previous_triangulated:
+                prev_pos, _, _ = self.previous_triangulated[target_id]
+                movement = position - prev_pos
+                if movement.length() > 0:
+                    self.enemy_direction[cell] = movement.normalize()
+            else:
+                # Sem histórico, usar média das direções que contribuíram para esta triangulação
+                # (se tivermos acesso a elas)
+                # Por simplicidade, mantemos a direção atual ou definimos como zero
+                self.enemy_direction[cell] = pygame.math.Vector2(0, 0)
+            
+            # Atualizar o timestamp
+            self.enemy_timestamp[cell] = current_time
+        
+        # Armazenar para o próximo ciclo
+        if not hasattr(self, 'previous_triangulated'):
+            self.previous_triangulated = {}
+        self.previous_triangulated = self.triangulated_targets.copy()
 
+    def _directions_compatible(self, pos1, dir1, pos2, dir2, angle_threshold=0.2):
+        """
+        Verifica se duas direções de detecção são compatíveis (podem apontar para o mesmo alvo).
+        
+        Args:
+            pos1, pos2: Posições dos drones detectores.
+            dir1, dir2: Direções de detecção.
+            angle_threshold: Limiar de ângulo (em radianos) para considerar compatibilidade.
+            
+        Returns:
+            bool: True se as direções são potencialmente compatíveis.
+        """
+        # Calcular o ponto de interseção (pode ser aproximado)
+        intersection = self._triangulate_position(pos1, dir1, pos2, dir2)
+        
+        if intersection is None:
+            return False
+            
+        # Verificar se as direções reais de ambos os detectores para o ponto
+        # de interseção são próximas às direções de detecção
+        real_dir1 = (intersection - pos1)
+        real_dir2 = (intersection - pos2)
+        
+        if real_dir1.length() > 0 and real_dir2.length() > 0:
+            real_dir1 = real_dir1.normalize()
+            real_dir2 = real_dir2.normalize()
+            
+            angle1 = math.acos(max(-1, min(1, real_dir1.dot(dir1))))
+            angle2 = math.acos(max(-1, min(1, real_dir2.dot(dir2))))
+            
+            return angle1 < angle_threshold and angle2 < angle_threshold
+        
+        return False
+
+    def _triangulate_position(self, pos1, dir1, pos2, dir2):
+        """
+        Triangula uma posição a partir de duas posições e direções.
+        Retorna None se as linhas forem quase paralelas.
+        
+        Args:
+            pos1, pos2: Posições dos dois drones detectores.
+            dir1, dir2: Direções normalizadas apontando para o alvo.
+            
+        Returns:
+            pygame.math.Vector2: Posição estimada do alvo, ou None se não for possível triangular.
+        """
+        # Representar as linhas como:
+        # pos1 + t1 * dir1
+        # pos2 + t2 * dir2
+        
+        # Matriz para resolver o sistema linear
+        A = np.array([
+            [dir1.x, -dir2.x],
+            [dir1.y, -dir2.y]
+        ])
+        
+        b = np.array([
+            pos2.x - pos1.x,
+            pos2.y - pos1.y
+        ])
+        
+        # Verificar se o sistema é bem-condicionado
+        # (linhas não são quase paralelas)
+        if abs(np.linalg.det(A)) < 0.1:  # Ajuste este limiar conforme necessário
+            return None
+            
+        try:
+            # Resolver o sistema para encontrar t1 e t2
+            t1, t2 = np.linalg.solve(A, b)
+            
+            # Se t1 < 0 ou t2 < 0, as linhas se cruzam "para trás"
+            if t1 < 0 or t2 < 0:
+                return None
+                
+            # Calcular o ponto de interseção
+            intersection1 = pygame.math.Vector2(pos1.x + dir1.x * t1, pos1.y + dir1.y * t1)
+            intersection2 = pygame.math.Vector2(pos2.x + dir2.x * t2, pos2.y + dir2.y * t2)
+            
+            # Deveria ser o mesmo ponto, mas pode haver diferenças numéricas
+            # Retorne a média como uma medida robusta
+            return pygame.math.Vector2((intersection1.x + intersection2.x) / 2, 
+                                    (intersection1.y + intersection2.y) / 2)
+            
+        except:
+            # Caso haja problemas na solução do sistema
+            return None
+    # PROTO ########################  
+                
     # -------------------------------------------------------------------------
     # Update Local Enemy Detection
     # -------------------------------------------------------------------------
+    
     def update_local_enemy_detection(self, enemy_drones: List[Any]) -> None:
         """
-        Updates the local detection of enemy drones.
-        
-        For each enemy drone within the detection range, updates the corresponding cell in
-        the enemy detection matrices (intensity, direction, timestamp). Additionally, for cells
-        within the detection radius that lack a detection (intensity below threshold), the intensity
-        is set to zero and the timestamp is updated using np.putmask.
-        
-        Args:
-            enemy_drones (List[Any]): List of enemy drones.
+        Atualiza a detecção local de drones inimigos.
+        Agora também recebe dados da triangulação passiva quando disponíveis.
         """
+        current_time: int = pygame.time.get_ticks()
+        
         if self.behavior_type == "AEW":
             detection_range = AEW_DETECTION_RANGE
         elif self.behavior_type == "RADAR":
             detection_range = RADAR_DETECTION_RANGE
         else:
             detection_range = FRIEND_DETECTION_RANGE
+        
+        # Usar detecções passivas trianguladas se disponíveis
+        if hasattr(self, 'triangulated_targets') and self.triangulated_targets:
+            # Para cada alvo triangulado, atualizar as matrizes como se fosse uma detecção direta
+            for target_id, (position, confidence, _) in self.triangulated_targets.items():
+                cell: Tuple[int, int] = pos_to_cell(position)
+                
+                # Atualizar as estruturas de detecção apenas se a confiança for superior ao valor atual
+                if confidence > self.enemy_intensity[cell]:
+                    # Armazenar a posição no dicionário de detecção para uso em cálculos futuros
+                    key = f"triangulated_{target_id}"
                     
-        current_time: int = pygame.time.get_ticks()
+                    # Se já temos um histórico para este alvo, podemos calcular a direção
+                    direction = pygame.math.Vector2(0, 0)  # Padrão sem direção
+                    
+                    if hasattr(self, 'previous_triangulated') and target_id in self.previous_triangulated:
+                        prev_pos, _, _ = self.previous_triangulated[target_id]
+                        delta = position - prev_pos
+                        if delta.length() > 0:
+                            direction = delta.normalize()
+                    
+                    # Atualizar matrizes
+                    self.enemy_intensity[cell] = confidence
+                    self.enemy_direction[cell] = [direction.x, direction.y]
+                    self.enemy_timestamp[cell] = current_time
+                    
+                    # Registrar para histórico
+                    if key not in self.current_enemy_pos_detection:
+                        self.current_enemy_pos_detection[key] = position.copy()
+                    else:
+                        # Já existia, atualizar registros de direção
+                        self.aux_enemy_detections[key] = cell
+                        self.current_enemy_pos_detection[key] = position.copy()
+        
+        # Continuar com o processo normal de detecção para inimigos em alcance direto
         for enemy in enemy_drones:
             key: int = id(enemy)
             if self.pos.distance_to(enemy.pos) >= detection_range:
@@ -186,7 +532,7 @@ class FriendDrone:
                 if delta.length() > 0:
                     self.enemy_direction[cell] = list(delta.normalize())
                 self.enemy_timestamp[cell] = current_time
-
+                
         # --- Vectorized Update for Cells Without Detection ---
         # Convert detection range (in pixels) to number of cells; scale factor (0.8) can be adjusted.
         detection_range_cells = int(np.floor(detection_range / CELL_SIZE) * 0.8)
@@ -222,6 +568,89 @@ class FriendDrone:
         # Se o drone está quebrado, aplica o comportamento de detecção errada
         if self.broken:
             self.update_broken(x_min, x_max, y_min, y_max, distances, detection_range_cells)
+
+    
+    # def update_local_enemy_detection(self, enemy_drones: List[Any]) -> None:
+    #     """
+    #     Updates the local detection of enemy drones.
+        
+    #     For each enemy drone within the detection range, updates the corresponding cell in
+    #     the enemy detection matrices (intensity, direction, timestamp). Additionally, for cells
+    #     within the detection radius that lack a detection (intensity below threshold), the intensity
+    #     is set to zero and the timestamp is updated using np.putmask.
+        
+    #     Args:
+    #         enemy_drones (List[Any]): List of enemy drones.
+    #     """
+    #     if self.behavior_type == "AEW":
+    #         detection_range = AEW_DETECTION_RANGE
+    #     elif self.behavior_type == "RADAR":
+    #         detection_range = RADAR_DETECTION_RANGE
+    #     else:
+    #         detection_range = FRIEND_DETECTION_RANGE
+                    
+    #     current_time: int = pygame.time.get_ticks()
+    #     for enemy in enemy_drones:
+    #         key: int = id(enemy)
+    #         if self.pos.distance_to(enemy.pos) >= detection_range:
+    #             self.current_enemy_pos_detection.pop(key, None)
+    #             self.aux_enemy_detections.pop(key, None)
+    #             continue
+            
+    #         cell: Tuple[int, int] = pos_to_cell(enemy.pos)
+    #         if key not in self.current_enemy_pos_detection:
+    #             self.current_enemy_pos_detection[key] = enemy.pos.copy()
+    #         else:
+    #             if key in self.current_enemy_pos_detection and key in self.aux_enemy_detections:
+    #                 prev_cell: Tuple[int, int] = self.aux_enemy_detections[key]
+    #                 if prev_cell != cell:
+    #                     # Zero out the values in the previous cell
+    #                     self.enemy_intensity[prev_cell] = 0
+    #                     self.enemy_direction[prev_cell] = [0, 0]
+    #                     self.enemy_timestamp[prev_cell] = current_time
+    #             self.aux_enemy_detections[key] = cell
+    #             self.enemy_intensity[cell] = 1.0
+    #             delta: pygame.math.Vector2 = enemy.pos - self.current_enemy_pos_detection[key]
+    #             self.current_enemy_pos_detection[key] = enemy.pos.copy()
+    #             if delta.length() > 0:
+    #                 self.enemy_direction[cell] = list(delta.normalize())
+    #             self.enemy_timestamp[cell] = current_time
+
+    #     # --- Vectorized Update for Cells Without Detection ---
+    #     # Convert detection range (in pixels) to number of cells; scale factor (0.8) can be adjusted.
+    #     detection_range_cells = int(np.floor(detection_range / CELL_SIZE) * 0.8)
+        
+    #     # Get the central cell of the drone (its own position)
+    #     center_x, center_y = pos_to_cell(self.pos)
+        
+    #     # Define limits of the rectangle that encloses the detection circle
+    #     x_min = max(center_x - detection_range_cells, 0)
+    #     x_max = min(center_x + detection_range_cells, GRID_WIDTH - 1)
+    #     y_min = max(center_y - detection_range_cells, 0)
+    #     y_max = min(center_y + detection_range_cells, GRID_HEIGHT - 1)
+        
+    #     # Create a grid of indices for the region
+    #     x_indices = np.arange(x_min, x_max + 1)
+    #     y_indices = np.arange(y_min, y_max + 1)
+    #     xv, yv = np.meshgrid(x_indices, y_indices, indexing='ij')
+        
+    #     # Calculate the distance (in cell units) of each cell from the center
+    #     distances = np.sqrt((xv - center_x) ** 2 + (yv - center_y) ** 2)
+        
+    #     # Extract the region of the enemy intensity and timestamp matrices
+    #     region_intensity = self.enemy_intensity[x_min:x_max+1, y_min:y_max+1]
+    #     region_timestamp = self.enemy_timestamp[x_min:x_max+1, y_min:y_max+1]
+        
+    #     # Create a mask for cells within the detection circle that have low intensity (i.e., no detection)
+    #     mask_empty = (distances <= detection_range_cells) & (region_intensity < 1)
+        
+    #     # Set intensities to 0 and update timestamps to current_time for these "empty" cells
+    #     np.putmask(region_intensity, mask_empty, 0)
+    #     np.putmask(region_timestamp, mask_empty, current_time)
+        
+    #     # Se o drone está quebrado, aplica o comportamento de detecção errada
+    #     if self.broken:
+    #         self.update_broken(x_min, x_max, y_min, y_max, distances, detection_range_cells)
 
     # -------------------------------------------------------------------------
     # Update Local Friend Detection
@@ -448,11 +877,20 @@ class FriendDrone:
             all_drones (List[Any]): List of all friend drones.
         """
         
+        messages_sent_this_cycle = 0
+        connections_this_cycle = 0
+        
         for other in all_drones:
             if other is not self and self.pos.distance_to(other.pos) < COMMUNICATION_RANGE:
+                connections_this_cycle += 1
+                messages_sent_this_cycle += 2
                 if random.random() > MESSAGE_LOSS_PROBABILITY:
                     self.merge_enemy_matrix(other)
                     self.merge_friend_matrix(other)
+                    
+        # Count the number of connections made this cycle
+        self.active_connections = connections_this_cycle
+        self.messages_sent_this_cycle = messages_sent_this_cycle
                     
     # -------------------------------------------------------------------------
     # Apply Behavior Broken
@@ -619,10 +1057,19 @@ class FriendDrone:
         self.return_to_base = return_to_base
         
         self.decay_matrices()
+        # PROTO #################
+        self.update_passive_detection_and_triangulate(enemy_drones, friend_drones)
+        # PROTO #################
         self.update_local_enemy_detection(enemy_drones)
         self.update_local_friend_detection(friend_drones)
         self.communication(friend_drones)
         self.take_action()
+        
+        # Calcular distância percorrida
+        new_distance = self.pos.distance_to(self.last_position)
+        self.distance_traveled += new_distance
+        self.last_position = self.pos.copy()
+        
         self.trajectory.append(self.pos.copy())
     
     # -------------------------------------------------------------------------
@@ -811,6 +1258,30 @@ class FriendDrone:
                         self.vel = pygame.math.Vector2(0, 0)
             else:
                 self.vel = pygame.math.Vector2(0, 0)
+                
+    def draw_passive_detection(self, surface: pygame.Surface) -> None:
+        """
+        Desenha linhas representando as direções de detecção passiva
+        e círculos representando as posições trianguladas.
+        """
+        if hasattr(self, 'passive_detections'):
+            # Desenhar linhas de direção das detecções passivas
+            for direction, _ in self.passive_detections.values():
+                # Calcular ponto final da linha (estendendo a direção)
+                end_point = self.pos + direction * FRIEND_DETECTION_RANGE  # Comprimento da linha de visualização
+                draw_dashed_line(surface, (255, 255, 0, 64), self.pos, end_point,
+                    width=1, dash_length=10, space_length=5)
+                # pygame.draw.line(surface, (255, 255, 0), 
+                #                 (int(self.pos.x), int(self.pos.y)), 
+                #                 (int(end_point.x), int(end_point.y)), 1)
+        
+        if hasattr(self, 'last_triangulated'):
+            # Desenhar posições trianguladas
+            for position, confidence in self.last_triangulated.values():
+                # Tamanho do círculo baseado na confiança
+                radius = int(5 + confidence * 5)
+                pygame.draw.circle(surface, (0, 255, 255, int(confidence * 200)),
+                                (int(position.x), int(position.y)), radius, 1)
 
     # -------------------------------------------------------------------------
     # Rendering: Draw the Drone
@@ -877,6 +1348,8 @@ class FriendDrone:
             surface.blit(selected_label, (int(self.pos.x) + 20, int(self.pos.y) + 10))
             
         if show_debug:
+            self.draw_passive_detection(surface)
+            
             len_info = len(self.info[0])
             debug_label = font.render(self.info[0], True, (255, 215, 0))
             surface.blit(debug_label, (int(self.pos.x) - 3.5 * len_info, int(self.pos.y) + 25))

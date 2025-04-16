@@ -10,24 +10,8 @@ from settings import *
 # -------------------------------------------------------------------------
 # Planning Policy (Class Method)
 # -------------------------------------------------------------------------   
-def planning_policy(state, friend_activation_threshold_position: float = 0.7, enemy_activation_threshold_position: float = 0.4):
-    """
-    Atualiza o estado do drone e gera a velocidade (ação) a ser aplicada com base nas
-    matrizes de detecção de inimigos e amigos. Nesta política, cada alvo inimigo é
-    atribuído a um "amigo" (representado pela posição na matriz de detecção) e, se o
-    drone self (identificado pelo índice da sua posição na matriz) for designado para um
-    alvo, ele se engaja na perseguição.
-    
-    Args:
-        state (dict): Contém as chaves 'pos', 'friend_intensity', 'enemy_intensity',
-                    'friend_direction', 'enemy_direction'. A posição (pos) é um array [x, y].
-        friend_activation_threshold_position (float): Limiar de intensidade para considerar uma célula ativa.
-        enemy_activation_threshold_position (float): Limiar de intensidade para considerar uma célula ativa.
-        
-    Returns:
-        Tuple[info, velocity]: info é uma string descritiva e velocity é um pygame.math.Vector2,
-                            escalado por FRIEND_SPEED.
-    """
+def planning_policy(state, friend_activation_threshold_position: float = 0.7,
+                    enemy_activation_threshold_position: float = 0.4):
 
     def hold_position(pos, friend_intensity, enemy_intensity, enemy_direction, friends_hold=None,
                     activation_threshold_position: float = 1, enemy_threshold: float = 0.4) -> tuple:
@@ -185,9 +169,11 @@ def planning_policy(state, friend_activation_threshold_position: float = 0.7, en
     for cell, intensity in np.ndenumerate(enemy_intensity):
         if intensity < enemy_activation_threshold_position:
             continue
+        
         target_pos = pygame.math.Vector2((cell[0] + 0.5) * CELL_SIZE,
                                         (cell[1] + 0.5) * CELL_SIZE)
         distance_to_interest = target_pos.distance_to(INTEREST_POINT_CENTER)
+        
         enemy_targets.append((cell, target_pos, distance_to_interest))
         
         

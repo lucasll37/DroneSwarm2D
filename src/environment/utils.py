@@ -63,6 +63,26 @@ def draw_dashed_circle(surface: pygame.Surface,
         end_pos = (center[0] + radius * math.cos(end_angle),
                    center[1] + radius * math.sin(end_angle))
         pygame.draw.line(surface, color, start_pos, end_pos, width)
+        
+        
+def draw_dashed_line(surface: pygame.Surface, color: Tuple[int, int, int],
+                     start_pos: pygame.math.Vector2, end_pos: pygame.math.Vector2,
+                     width: int = 1, dash_length: int = 10, space_length: int = 5) -> None:
+    """
+    Draws a dashed line from start_pos to end_pos on the given surface.
+    """
+    start = pygame.math.Vector2(start_pos)
+    end = pygame.math.Vector2(end_pos)
+    displacement = end - start
+    length = displacement.length()
+    if length == 0:
+        return
+    dash_vector = displacement.normalize() * dash_length
+    num_dashes = int(length / (dash_length + space_length))
+    for i in range(num_dashes):
+        dash_start = start + (dash_length + space_length) * i * displacement.normalize()
+        dash_end = dash_start + dash_vector
+        pygame.draw.line(surface, color, dash_start, dash_end, width)
 
 # -----------------------------------------------------------------------------
 # Gaussian Bump Kernel Functions

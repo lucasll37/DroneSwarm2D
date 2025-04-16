@@ -34,8 +34,9 @@ from typing import Tuple, List, Any, Optional
 from FriendDrone import FriendDrone
 from EnemyDrone import EnemyDrone
 from InterestPoint import CircleInterestPoint
+from DemilitarizedZone import DemilitarizedZone
 from settings import *
-from utils import draw_dashed_circle, smooth_matrix_with_kernel_10x10, sim_to_geo, pos_to_cell
+from utils import smooth_matrix_with_kernel_10x10, sim_to_geo, draw_dashed_line
 
 # Uncomment if needed:
 clock: pygame.time.Clock = pygame.time.Clock()
@@ -123,26 +124,7 @@ def draw_heatmap(surface: pygame.Surface, global_intensity: np.ndarray, base_col
                     color = (0, 0, int(intensity * 255))
                 rect = pygame.Rect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE)
                 pygame.draw.rect(surface, color, rect)
-
-def draw_dashed_line(surface: pygame.Surface, color: Tuple[int, int, int],
-                     start_pos: pygame.math.Vector2, end_pos: pygame.math.Vector2,
-                     width: int = 1, dash_length: int = 10, space_length: int = 5) -> None:
-    """
-    Draws a dashed line from start_pos to end_pos on the given surface.
-    """
-    start = pygame.math.Vector2(start_pos)
-    end = pygame.math.Vector2(end_pos)
-    displacement = end - start
-    length = displacement.length()
-    if length == 0:
-        return
-    dash_vector = displacement.normalize() * dash_length
-    num_dashes = int(length / (dash_length + space_length))
-    for i in range(num_dashes):
-        dash_start = start + (dash_length + space_length) * i * displacement.normalize()
-        dash_end = dash_start + dash_vector
-        pygame.draw.line(surface, color, dash_start, dash_end, width)
-        
+                        
 
 def draw_friend_communication(surface: pygame.Surface, friend_drones: List[Any], show_dashed: bool = True) -> None:
     """
@@ -213,7 +195,10 @@ class AirTrafficEnv:
     """
     
     def __init__(self, max_steps: int = 5_000, mode: Optional[str] = 'human',
-                 friend_behavior: Optional[str] = 'planning', enemy_behavior: Optional[str] = None) -> None:
+                 friend_behavior: Optional[str] = 'planning',
+                 enemy_behavior: Optional[str] = None,
+                 demilitarized_zones: List[Tuple[float, float, float]] = None) -> None:
+        
         self.simulation_start_time = datetime.utcnow()
         self.current_time = datetime.utcnow()
         self.max_steps: int = max_steps
@@ -238,7 +223,7 @@ class AirTrafficEnv:
         self.accum_reward: float = 0.0
         self.attack_penalty: int = 0
         self.sucessful_attacks: int = 0
-        self.font: pygame.font.Font = pygame.font.SysFont(FONT_FAMILY, 16, bold=True)
+        self.font: pygame.font.Font = pygame.font.SysFont(FONT_FAMILY, 14, bold=False)
 
         # Display flags
         self.save_frames = False
@@ -255,6 +240,22 @@ class AirTrafficEnv:
         self.return_to_base = False
         self.export_to_tacview: bool = False     
         self.frame_number = 0
+        
+        # Estatísticas para exibição
+        self.messages_exchanged = 0
+        self.messages_count_interval = []  # Lista para calcular média móvel
+        self.last_message_count_time = pygame.time.get_ticks()
+        self.messages_per_second = 0
+        self.active_connections = 0
+        self.total_distance_traveled = 0
+        
+        self.demilitarized_zones = []
+        if demilitarized_zones:
+            for x, y, radius in demilitarized_zones:
+                zone_center = pygame.math.Vector2(x, y)
+                # Verificar se a zona não intercepta o ponto de interesse
+                if zone_center.distance_to(INTEREST_POINT_CENTER) > INTERNAL_RADIUS + radius:
+                    self.demilitarized_zones.append(DemilitarizedZone(zone_center, radius))
         
         # Initialize UI buttons with positions relative to the simulation and graph areas.
         button_width: int = 130
@@ -282,6 +283,22 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10, row4_y, button_width, button_height), "Tog. Trajetory", self.toggle_trajetory, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=True))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False))
+
+    def is_in_demilitarized_zone(self, position: pygame.math.Vector2) -> bool:
+        """
+        Verifica se uma posição está dentro de alguma zona desmilitarizada.
+        
+        Args:
+            position (pygame.math.Vector2): Posição a ser verificada.
+            
+        Returns:
+            bool: True se a posição estiver dentro de uma zona desmilitarizada.
+        """
+        for zone in self.demilitarized_zones:
+            if position.distance_to(zone.center) <= zone.radius:
+                return True
+        return False
+
 
     # ------------- UI Button Callback Methods -------------        
     def toggle_graph(self) -> None:
@@ -416,9 +433,19 @@ class AirTrafficEnv:
             pos = center + pygame.math.Vector2(INITIAL_DISTANCE * math.cos(angle), INITIAL_DISTANCE * math.sin(angle))
             
             if k < BROKEN_COUNT:
-                drone = FriendDrone(self.interest_point.center, position=(pos.x, pos.y), behavior_type=self.friend_behavior, broken=True)
+                drone = FriendDrone(
+                    self.interest_point.center,
+                    position=(pos.x, pos.y),
+                    behavior_type=self.friend_behavior,
+                    broken=True
+                )
+                
             else:
-                drone = FriendDrone(self.interest_point.center, position=(pos.x, pos.y), behavior_type=self.friend_behavior)
+                drone = FriendDrone(
+                    self.interest_point.center,
+                    position=(pos.x, pos.y),
+                    behavior_type=self.friend_behavior
+                )
                 
             if k == 0:
                 self.selected_drone = drone
@@ -542,9 +569,17 @@ class AirTrafficEnv:
         frame_reward = 0
         if not self.paused:
             
+            self.messages_exchanged = 0
+            self.active_connections = 0
+            
             self.current_time += timedelta(seconds=DT_STEP)
             for drone in self.friend_drones:
                 drone.update(self.enemy_drones, self.friend_drones, self.return_to_base)
+                
+                # Coletar estatísticas
+                self.messages_exchanged += getattr(drone, 'messages_sent_this_cycle', 0)
+                self.active_connections += getattr(drone, 'active_connections', 0)
+                self.total_distance_traveled += drone.pos.distance_to(drone.last_position)
                 
                 if self.return_to_base and drone.pos.distance_to(CENTER) <= EPSILON:
                     self.friend_drones = [f for f in self.friend_drones if drone.drone_id != f.drone_id]
@@ -560,6 +595,30 @@ class AirTrafficEnv:
                         detector = friend.pos
                         break
                 enemy.update(detector)
+                
+                
+            # Calcular mensagens por segundo
+            current_time = pygame.time.get_ticks()
+            time_elapsed = (current_time - self.last_message_count_time) / 1000  # Em segundos
+            
+            # Dividir por 2 para considerar comunicação bidirecional
+            self.messages_exchanged /= 2
+            self.active_connections /= 2
+            
+            if time_elapsed >= 1e-1:  # Atualizar no mínimo a cada segundo
+                msgs_per_sec = self.messages_exchanged / time_elapsed
+                self.messages_count_interval.append(msgs_per_sec)
+                
+                # Manter apenas as últimas 5 medições para média móvel
+                if len(self.messages_count_interval) > 5:
+                    self.messages_count_interval.pop(0)
+                    
+                # Calcular média das últimas medições
+                self.messages_per_second = sum(self.messages_count_interval) / len(self.messages_count_interval)
+                
+                self.last_message_count_time = current_time
+                
+                
             frame_reward = self.compute_reward()
             self.accum_reward += frame_reward
             self.current_step += 1
@@ -582,6 +641,11 @@ class AirTrafficEnv:
             enemies_to_remove = set()
             for i, friend in enumerate(self.friend_drones):
                 for j, enemy in enumerate(self.enemy_drones):
+                    
+                    if self.is_in_demilitarized_zone(enemy.pos):
+                        # Skip the enemy drone if it is in a demilitarized zone.
+                        continue
+                    
                     if friend.pos.distance_to(enemy.pos) <= NEUTRALIZATION_RANGE:
                         rand_val = random.random()
                         # If the friendly drone is of type AEW, mutual elimination always occurs.
@@ -671,17 +735,35 @@ class AirTrafficEnv:
         """
         Draws a header with current frame and reward information.
         """
+        # Header
+        header_font = pygame.font.SysFont(FONT_FAMILY, 16, bold=True)
         header_text = f"Air Traffic Env - Episode: {episode:4d} | Step: {frame_count:4d} | Accumulated Reward: {accum_reward:8.2f}"
-        header_label = self.font.render(header_text, True, (0, 255, 0))
+        header_label = header_font.render(header_text, True, (0, 255, 0))
         surface.blit(header_label, (10, 40))
         
+        # Friend drone counts
         friend_count = f"Friend Drones: {len(friend_drones)}"
         friend_label = self.font.render(friend_count, True, (0, 255, 0))
         surface.blit(friend_label, (10, 70))
         
+        # Enemy drone count
         enemy_count = f"Enemy Drones: {len(self.enemy_drones)}"
         enemy_label = self.font.render(enemy_count, True, (0, 255, 0))
-        surface.blit(enemy_label, (10, 100))
+        surface.blit(enemy_label, (10, 90))
+                
+        msg_text = f"Mensagens/s: {self.messages_per_second:.1f}"
+        msg_label = self.font.render(msg_text, True, (0, 255, 0))
+        surface.blit(msg_label, (10, 110))
+        
+        # Conexões ativas
+        conn_text = f"Conexões: {self.active_connections}"
+        conn_label = self.font.render(conn_text, True, (0, 255, 0))
+        surface.blit(conn_label, (10, 130))
+        
+        # Distância total percorrida
+        dist_text = f"Distância percorrida: {self.total_distance_traveled:.1f} px"
+        dist_label = self.font.render(dist_text, True, (0, 255, 0))
+        surface.blit(dist_label, (10, 150))
         
         duration = current_time - self.simulation_start_time
         duration_str = str(duration).split(".")[0]
@@ -706,6 +788,7 @@ class AirTrafficEnv:
             # Compute global enemy intensity from friend drones
             global_enemy_intensity = np.zeros((GRID_WIDTH, GRID_HEIGHT))
             global_enemy_direction = np.zeros((GRID_WIDTH, GRID_HEIGHT, 2))
+            
             for drone in self.friend_drones:
                 global_enemy_intensity = np.maximum(global_enemy_intensity, drone.enemy_intensity)
                 global_enemy_direction = np.where(np.expand_dims(drone.enemy_intensity, axis=2) > 0,
@@ -731,6 +814,10 @@ class AirTrafficEnv:
                 
             self.interest_point.draw(self.sim_surface)
             self.draw_header(self.sim_surface, self.episode, self.current_step, self.current_time, self.friend_drones, self.accum_reward)
+            
+            # Draw demilitarized zones
+            for zone in self.demilitarized_zones:
+                zone.draw(self.sim_surface)
             
             if self.show_graph:
                 graph_image = self.plot_individual_states()
