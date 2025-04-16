@@ -94,37 +94,12 @@ compare:
 
 # -----------------------------------------------------------------------------
 # Target: sandbox
-# Runs the sandbox script for testing or experimentation.
+# Runs the sandbox script.
 # -----------------------------------------------------------------------------
-sandbox:
-	@echo "Running the sandbox script..."
-	$(PYTHON) ./src/sandbox.py
-
-# -----------------------------------------------------------------------------  
-# Target: build_nuitka
-# Compila o projeto com Nuitka, gerando um executável standalone em um único arquivo.
-# -----------------------------------------------------------------------------  
 build:
-	@echo "Compilando com Nuitka com todas as dependências necessárias..."
+	@echo "Compilando módulos Cython selecionados..."
 	@bash -c "source $$(conda info --base)/etc/profile.d/conda.sh && conda activate $(VENV_DIR) && \
-		python3 -m nuitka \
-		--standalone \
-		--onefile \
-		--output-dir=dist \
-		--output-filename=main.exe \
-		--remove-output \
-		--include-package=./src/environment \
-		--include-package=matplotlib \
-		--include-package=pandas \
-		--include-package=pygame \
-		--include-package=scipy \
-		--include-package=seaborn \
-		--include-package=cairosvg \
-		--include-package=pydot \
-		--include-data-dir=./assets=assets \
-		--static-libpython=yes \
-		./src/main.py"
-
+		python setup.py build_ext"
 
 
 # -----------------------------------------------------------------------------

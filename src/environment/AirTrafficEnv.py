@@ -21,7 +21,10 @@ import math
 import threading
 import numpy as np
 import pygame
-pygame.init()
+
+# Initialize pygame if not already initialized
+if not pygame.get_init():
+    pygame.init()
 
 from datetime import datetime, timedelta
 from scipy.ndimage import gaussian_filter
@@ -30,11 +33,17 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from typing import Tuple, List, Any, Optional
 
+import pyximport
+pyximport.install(build_dir="build/lib", inplace=False)
+
+import InterestPoint
+# import DemilitarizedZone
+
 # Project-specific imports
 from FriendDrone import FriendDrone
 from EnemyDrone import EnemyDrone
-from InterestPoint import CircleInterestPoint
-from DemilitarizedZone import DemilitarizedZone
+# from InterestPoint import CircleInterestPoint
+from DemilitarizedZone import CircleDMZ
 from settings import *
 from utils import smooth_matrix_with_kernel_10x10, sim_to_geo, draw_dashed_line
 
@@ -210,7 +219,7 @@ class AirTrafficEnv:
         self.current_step: int = 0
         self.friend_drones: Optional[List[FriendDrone]] = []
         self.enemy_drones: Optional[List[EnemyDrone]] = []
-        self.interest_point: Optional[CircleInterestPoint] = None
+        self.interest_point = None
         self.selected_drone = None
         self.leader = None
         
@@ -255,7 +264,8 @@ class AirTrafficEnv:
                 zone_center = pygame.math.Vector2(x, y)
                 # Verificar se a zona não intercepta o ponto de interesse
                 if zone_center.distance_to(INTEREST_POINT_CENTER) > INTERNAL_RADIUS + radius:
-                    self.demilitarized_zones.append(DemilitarizedZone(zone_center, radius))
+                    self.demilitarized_zones.append(CircleDMZ(zone_center, radius))
+                    # self.demilitarized_zones.append(DemilitarizedZone.CircleDMZ(zone_center, radius))
         
         # Initialize UI buttons with positions relative to the simulation and graph areas.
         button_width: int = 130
@@ -412,7 +422,7 @@ class AirTrafficEnv:
         
         # Create an interest point (a circle at the simulation center)
         center = CENTER
-        self.interest_point = CircleInterestPoint(CENTER, INTERNAL_RADIUS, EXTERNAL_RADIUS)
+        self.interest_point = InterestPoint.CircleInterestPoint(CENTER, INTERNAL_RADIUS, EXTERNAL_RADIUS)
         
         # Initialize friend drones in a regular polygon around the center
         self.friend_drones = []
