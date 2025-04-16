@@ -146,7 +146,7 @@ def draw_friend_communication(surface: pygame.Surface, friend_drones: List[Any],
             d1 = friend_drones[i]
             d2 = friend_drones[j]
             if d1.pos.distance_to(d2.pos) <= COMMUNICATION_RANGE:
-                draw_dashed_line(surface, (255, 255, 255, 64), d1.pos, d2.pos,
+                draw_dashed_line(surface, (255, 255, 255, 128), d1.pos, d2.pos,
                                  width=1, dash_length=10, space_length=5)
 
 def draw_direction(surface: pygame.Surface, global_intensity: np.ndarray,
@@ -590,7 +590,7 @@ class AirTrafficEnv:
                 # Coletar estatísticas
                 self.messages_exchanged += getattr(drone, 'messages_sent_this_cycle', 0)
                 self.active_connections += getattr(drone, 'active_connections', 0)
-                self.total_distance_traveled += drone.pos.distance_to(drone.last_position)
+                self.total_distance_traveled += drone.distance_traveled
                 
                 if self.return_to_base and drone.pos.distance_to(CENTER) <= EPSILON:
                     self.friend_drones = [f for f in self.friend_drones if drone.drone_id != f.drone_id]
@@ -776,17 +776,17 @@ class AirTrafficEnv:
         enemy_label = self.font.render(enemy_count, True, (0, 255, 0))
         surface.blit(enemy_label, (10, 90))
                 
-        msg_text = f"Mensagens/s: {self.messages_per_second:.1f}"
+        msg_text = f"Messages/s: {self.messages_per_second:.1f}"
         msg_label = self.font.render(msg_text, True, (0, 255, 0))
         surface.blit(msg_label, (10, 110))
         
         # Conexões ativas
-        conn_text = f"Conexões: {self.active_connections}"
+        conn_text = f"Connections: {self.active_connections}"
         conn_label = self.font.render(conn_text, True, (0, 255, 0))
         surface.blit(conn_label, (10, 130))
         
         # Distância total percorrida
-        dist_text = f"Distância percorrida: {self.total_distance_traveled:.1f} px"
+        dist_text = f"Total distance traveled: {self.total_distance_traveled:.1f} px"
         dist_label = self.font.render(dist_text, True, (0, 255, 0))
         surface.blit(dist_label, (10, 150))
         

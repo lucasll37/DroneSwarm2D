@@ -101,7 +101,7 @@ class FriendDrone:
         self.total_steps = 0 
         self.messages_sent = 0
         self.distance_traveled = 0
-        self.last_position = pygame.math.Vector2(position[0], position[1])
+        self.last_position = self.pos.copy()
         
         # Detection matrices
         self.enemy_intensity: np.ndarray = np.zeros((GRID_WIDTH, GRID_HEIGHT))
@@ -1072,8 +1072,7 @@ class FriendDrone:
         self.take_action()
         
         # Calcular distância percorrida
-        new_distance = self.pos.distance_to(self.last_position)
-        self.distance_traveled += new_distance
+        self.distance_traveled += self.pos.distance_to(self.last_position)
         self.last_position = self.pos.copy()
         
         self.trajectory.append(self.pos.copy())
@@ -1306,11 +1305,8 @@ class FriendDrone:
             for direction, _ in self.passive_detections.values():
                 # Calcular ponto final da linha (estendendo a direção)
                 end_point = self.pos + direction * FRIEND_DETECTION_RANGE  # Comprimento da linha de visualização
-                draw_dashed_line(surface, (255, 255, 0, 64), self.pos, end_point,
+                draw_dashed_line(surface, (255, 0, 0, 128), self.pos, end_point,
                     width=1, dash_length=10, space_length=5)
-                # pygame.draw.line(surface, (255, 255, 0), 
-                #                 (int(self.pos.x), int(self.pos.y)), 
-                #                 (int(end_point.x), int(end_point.y)), 1)
         
         if hasattr(self, 'last_triangulated'):
             # Desenhar posições trianguladas
