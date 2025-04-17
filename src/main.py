@@ -25,6 +25,10 @@ if config_dir not in sys.path:
 from AirTrafficEnv import AirTrafficEnv
 from settings import *
 
+# import pyximport
+# pyximport.install(build_dir="build/lib", inplace=False)
+# import AirTrafficEnv
+
 # -----------------------------------------------------------------------------
 # Main Function
 # -----------------------------------------------------------------------------
@@ -39,7 +43,7 @@ def main() -> None:
     # Create an instance of the AirTrafficEnv.
     # Friend behavior examples: "direct", "zigzag", "spiral", etc.
     # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='AI', enemy_behavior=None, demilitarized_zones=DMZ)
-    # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior="formation", demilitarized_zones=DMZ)
+    # env = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior="formation", demilitarized_zones=DMZ)
     env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ)
     
     episodes: int = 2  # Set number of episodes to run

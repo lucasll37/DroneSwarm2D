@@ -73,6 +73,7 @@ def save_variables(save_folder: str) -> None:
         "COMMUNICATION_RANGE": COMMUNICATION_RANGE,
         "MESSAGE_LOSS_PROBABILITY": MESSAGE_LOSS_PROBABILITY,
         "TARGET_INFLUENCE": TARGET_INFLUENCE,
+        "DETECTION_MODE": DETECTION_MODE,
         
         # Velocidades
         "FRIEND_SPEED": FRIEND_SPEED,

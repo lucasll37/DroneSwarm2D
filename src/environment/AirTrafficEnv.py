@@ -135,19 +135,26 @@ def draw_heatmap(surface: pygame.Surface, global_intensity: np.ndarray, base_col
                 pygame.draw.rect(surface, color, rect)
                         
 
-def draw_friend_communication(surface: pygame.Surface, friend_drones: List[Any], show_dashed: bool = True) -> None:
+def draw_friend_communication(surface: pygame.Surface,
+                              friend_drones: List[Any],
+                              show_dashed: bool = True) -> None:
     """
     Draws dashed lines between nearby friend drones to represent communication links.
     """
     if not show_dashed:
         return
-    for i in range(len(friend_drones)):
-        for j in range(i + 1, len(friend_drones)):
-            d1 = friend_drones[i]
-            d2 = friend_drones[j]
-            if d1.pos.distance_to(d2.pos) <= COMMUNICATION_RANGE:
-                draw_dashed_line(surface, (255, 255, 255, 128), d1.pos, d2.pos,
-                                 width=1, dash_length=10, space_length=5)
+    for drone in friend_drones:
+        # itera sobre os vizinhos que o próprio drone registrou
+        for nbr in getattr(drone, "neighbors", []):
+            # para não duplicar a linha, desenha só se id for menor
+            if drone.drone_id < nbr.drone_id:
+                draw_dashed_line(surface,
+                                 (255, 255, 255, 128),
+                                 drone.pos, nbr.pos,
+                                 width=1,
+                                 dash_length=5,
+                                 space_length=5)
+
 
 def draw_direction(surface: pygame.Surface, global_intensity: np.ndarray,
                    global_direction: np.ndarray, threshold: float,

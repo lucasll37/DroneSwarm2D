@@ -7,8 +7,9 @@ BUILD_LIB = os.path.join(os.path.dirname(__file__), "build", "lib")
 BUILD_TEMP = os.path.join(os.path.dirname(__file__), "build", "temp")
 
 extensions = [
-    Extension("sandbox", ["src/sandbox.pyx"]),
-    # adicione outros módulos aqui...
+    # Extension("AirTrafficEnv", ["./src/environment/AirTrafficEnv.pyx"]),
+    # Extension("InterestPoint", ["./src/environment/InterestPoint.pyx"]),
+    
 ]
 
 setup(

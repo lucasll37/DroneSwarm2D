@@ -7,15 +7,15 @@
 
 # TODO
 
-corrigir bugs
+corrigir bugs TRIANGULAÇÃO
 
-reescrever em cython
 
 Drone inimigo alem de ataque desesperado e fuga, implementar continuar trajetória de ataque
 
-limitar quantidade de conexões (se conectar aos 3 mais próximos)
 
 seed para ações aleatórias do drone inimigo
+
+reescrever em cython
 
 <!-- condição de parada na simulação: sem diferença estatistica entre amostras anteriores e conjunto total com novas amostras -->
 

@@ -67,7 +67,7 @@ def draw_dashed_circle(surface: pygame.Surface,
         
 def draw_dashed_line(surface: pygame.Surface, color: Tuple[int, int, int],
                      start_pos: pygame.math.Vector2, end_pos: pygame.math.Vector2,
-                     width: int = 1, dash_length: int = 10, space_length: int = 5) -> None:
+                     width: int = 1, dash_length: int = 5, space_length: int = 5) -> None:
     """
     Draws a dashed line from start_pos to end_pos on the given surface.
     """
