@@ -148,12 +148,13 @@ def draw_friend_communication(surface: pygame.Surface,
         for nbr in getattr(drone, "neighbors", []):
             # para não duplicar a linha, desenha só se id for menor
             if drone.drone_id < nbr.drone_id:
-                draw_dashed_line(surface,
-                                 (255, 255, 255, 128),
-                                 drone.pos, nbr.pos,
-                                 width=1,
-                                 dash_length=5,
-                                 space_length=5)
+                # draw_dashed_line(surface,
+                #                  (255, 255, 255, 255),
+                #                  drone.pos, nbr.pos,
+                #                  width=2,
+                #                  dash_length=5,
+                #                  space_length=5)
+                pygame.draw.line(surface, (255, 255, 255, 128), (drone.pos.x, drone.pos.y), (nbr.pos.x, nbr.pos.y), 2)
 
 
 def draw_direction(surface: pygame.Surface, global_intensity: np.ndarray,
@@ -254,11 +255,11 @@ class AirTrafficEnv:
         self.show_friend_detection_range: bool = True
         self.show_enemy_detection_range: bool = False
         self.show_dashed_lines: bool = True
-        self.show_arrows: bool = True
+        self.show_arrows: bool = False
         self.show_target_lines: bool = False  # Draw line between enemy and its closest target
         self.show_friend_comm_range: bool = False
         self.show_trajectory: bool = True   
-        self.show_debug = True
+        self.show_debug = False
         self.return_to_base = False
         self.export_to_tacview: bool = False     
         self.frame_number = 0
@@ -297,13 +298,13 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10, row2_y, button_width, button_height), "Tog. Friend Range", self.toggle_friend_range, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row2_y, button_width, button_height), "Tog. Enemy Range", self.toggle_enemy_range, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Dashed", self.toggle_dashed, toggled=True))
-        self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Arrows", self.toggle_arrows, toggled=True))
+        # self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Arrows", self.toggle_arrows, toggled=False))
         self.buttons.append(Button((graph_x + 10, row3_y, button_width, button_height), "Tog. Comm Range", self.toggle_comm_range, toggled=False))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row3_y, button_width, button_height), "Export Tacview", self.toggle_tacview_export, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Save Frames", self.toogle_save_frames, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Target Lines", self.toggle_target_lines, toggled=False))
         self.buttons.append(Button((graph_x + 10, row4_y, button_width, button_height), "Tog. Trajetory", self.toggle_trajetory, toggled=True))
-        self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=True))
+        self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False))
 
     def is_in_demilitarized_zone(self, position: pygame.math.Vector2) -> bool:
@@ -452,8 +453,10 @@ class AirTrafficEnv:
             self.friend_drones.append(drone)
             
         for k in range(FRIEND_COUNT - AEW_COUNT - RADAR_COUNT):
-            angle = 2 * math.pi * k / (FRIEND_COUNT - AEW_COUNT - RADAR_COUNT)
-            pos = center + pygame.math.Vector2(INITIAL_DISTANCE * math.cos(angle), INITIAL_DISTANCE * math.sin(angle))
+            angle = (2 * INITIAL_N_LAYERS * math.pi * k) / (FRIEND_COUNT - AEW_COUNT - RADAR_COUNT)
+            layer = k // ((FRIEND_COUNT - AEW_COUNT - RADAR_COUNT) // INITIAL_N_LAYERS)
+                
+            pos = center + pygame.math.Vector2((INITIAL_DISTANCE + layer * 40) * math.cos(angle), (INITIAL_DISTANCE + layer * 40) * math.sin(angle))
             
             if k < BROKEN_COUNT:
                 drone = FriendDrone(
@@ -840,28 +843,31 @@ class AirTrafficEnv:
 
             if self.show_debug:
                 draw_heatmap(self.sim_surface, global_enemy_intensity, "orange") # red
-            
-            if self.show_arrows:
                 draw_direction(self.sim_surface, global_enemy_intensity, global_enemy_direction, 0.1, show_arrows=self.show_arrows)
+            
+            # if self.show_arrows:
+            #     pass
                 
             if self.show_dashed_lines:
                 draw_friend_communication(self.sim_surface, self.friend_drones, show_dashed=self.show_dashed_lines)
                 
+            if self.show_target_lines:
+                self.draw_target_lines(self.sim_surface)
+                
+            
             for friend in self.friend_drones:
                 friend.draw(self.sim_surface, self.show_friend_detection_range, self.show_friend_comm_range, self.show_trajectory, self.show_debug)
                 
             for enemy in self.enemy_drones:
                 enemy.draw(self.sim_surface, self.show_enemy_detection_range, self.show_trajectory, self.show_debug)
                 
-            if self.show_target_lines:
-                self.draw_target_lines(self.sim_surface)
-                
             self.interest_point.draw(self.sim_surface)
-            self.draw_header(self.sim_surface, self.episode, self.current_step, self.current_time, self.friend_drones, self.accum_reward)
             
             # Draw demilitarized zones
             for zone in self.demilitarized_zones:
                 zone.draw(self.sim_surface)
+                
+            self.draw_header(self.sim_surface, self.episode, self.current_step, self.current_time, self.friend_drones, self.accum_reward)
             
             if self.show_graph:
                 graph_image = self.plot_individual_states()

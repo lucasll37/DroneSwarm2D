@@ -144,9 +144,9 @@ class CircleDMZ:
             surface (pygame.Surface): A superfície para desenhar a zona.
         """
         # Desenhar círculo semi-transparente
+        alpha_line = 75
         alpha_surface = pygame.Surface((int(self.radius * 2), int(self.radius * 2)), pygame.SRCALPHA)
-        fill_color = (self.color[0], self.color[1], self.color[2], 30)
-        alpha_line = 50
+        fill_color = (self.color[0], self.color[1], self.color[2], alpha_line)
         
         pygame.draw.circle(alpha_surface, fill_color, 
                          (int(self.radius), int(self.radius)), int(self.radius))

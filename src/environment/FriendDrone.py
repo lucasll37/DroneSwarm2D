@@ -1365,7 +1365,7 @@ class FriendDrone:
             detection_range = self._get_detection_range()
             draw_dashed_circle(
                 surface, 
-                (self.color[0], self.color[1], self.color[2], 64), 
+                (self.color[0], self.color[1], self.color[2], 32), 
                 (int(self.pos.x), int(self.pos.y)), 
                 detection_range, 
                 5, 5, 1

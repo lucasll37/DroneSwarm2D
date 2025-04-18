@@ -441,7 +441,6 @@ class EnemyDrone:
                 
                 self.pos = pygame.math.Vector2(SIM_WIDTH, SIM_HEIGHT // 2 + column * 60)
                 self.start_delay = 40 * row
-                # self.vel = pygame.math.Vector2(-1, 0)
 
             # self.behavior_type = "direct"
             if self.pos.distance_to(self.interest_point_center) > INITIAL_DISTANCE:
@@ -565,7 +564,7 @@ class EnemyDrone:
         
         # Optionally draw detection range as a dashed circle.
         if show_detection:
-            draw_dashed_circle(surface, (self.color[0], self.color[1], self.color[2], 64), (int(self.pos.x), int(self.pos.y)),
+            draw_dashed_circle(surface, (self.color[0], self.color[1], self.color[2], 32), (int(self.pos.x), int(self.pos.y)),
                                ENEMY_DETECTION_RANGE, dash_length=5, space_length=5, width=1)
         
         # Render the drone's ID with transparency.
