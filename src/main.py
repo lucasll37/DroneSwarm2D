@@ -41,10 +41,7 @@ def main() -> None:
     are printed at each step.
     """
     # Create an instance of the AirTrafficEnv.
-    # Friend behavior examples: "direct", "zigzag", "spiral", etc.
-    # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='debug', enemy_behavior='debug', demilitarized_zones=DMZ)
-    # env = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior="biformation", demilitarized_zones=DMZ)
-    env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior='debug', demilitarized_zones=DMZ, seed=None)
+    env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ, seed=None)
     
     episodes: int = 5  # Set number of episodes to run
     

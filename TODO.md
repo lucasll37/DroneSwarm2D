@@ -9,6 +9,8 @@
 
 corrigir bugs TRIANGULAÇÃO
 
+ajustar json de config
+
 reescrever em cython
 
 <!-- condição de parada na simulação: sem diferença estatistica entre amostras anteriores e conjunto total com novas amostras -->

@@ -240,13 +240,16 @@ class FriendDrone:
                 
                 # Linha de visada
                 cell_size = CELL_SIZE / TRIANGULATION_GRANULARITY
-                steps = int(math.ceil(detection_range / cell_size))
+                steps = int(math.floor(detection_range / cell_size))
                 start_cell = pos_to_cell(self.pos, cell_size)
-                self.passive_detection_matrix[start_cell] = 1
+                pos = self.pos.copy()
                 
-                for i in range(1, steps + 1):
+                while True:
                     # Calcula posição ao longo da linha
-                    pos = self.pos + direction * (i * cell_size)
+                    pos = pos + direction * cell_size
+                    
+                    if self.pos.distance_to(pos) > detection_range:
+                        break
                     
                     # Converte para célula
                     cell = pos_to_cell(pos, cell_size)
@@ -255,10 +258,6 @@ class FriendDrone:
                     if 0 <= cell[0] < GRID_WIDTH * TRIANGULATION_GRANULARITY and 0 <= cell[1] < GRID_HEIGHT * TRIANGULATION_GRANULARITY:
                         # Marca a célula
                         self.passive_detection_matrix[cell] = 1
-                        
-                        # Verifica se atingiu o limite de distância
-                        if i * CELL_SIZE * TRIANGULATION_GRANULARITY >= detection_range:
-                            break
 
     # -------------------------------------------------------------------------
     # Update Local Enemy Detection

@@ -140,20 +140,32 @@ def draw_triangulation(surface: pygame.Surface, global_triangulation: np.ndarray
         for j in range(global_triangulation.shape[1]):
             detections: float = global_triangulation[i, j]
             
-            intensity = min(1, detections / N_LINE_SIGHT_CROSSING)
-            if intensity > 1e-6:
+            # intensity = min(1, detections / N_LINE_SIGHT_CROSSING)
+            # if intensity > 1e-6:
+            #     if base_color == "red":
+            #         color: Tuple[int, int, int] = (int(intensity * 255), 0, 0)
+                    
+            #     elif base_color == "orange":
+            #         color: Tuple[int, int, int] = (int(intensity * 255), int(intensity * 165), 0)
+            #     else:
+            #         color = (0, 0, int(intensity * 255))
+                    
+            #     cell_size = CELL_SIZE / TRIANGULATION_GRANULARITY
+            #     rect = pygame.Rect(i * cell_size, j * cell_size, cell_size, cell_size)
+            #     pygame.draw.rect(surface, color, rect)
+                        
+            if detections == N_LINE_SIGHT_CROSSING:
                 if base_color == "red":
-                    color: Tuple[int, int, int] = (int(intensity * 255), 0, 0)
+                    color: Tuple[int, int, int] = (255, 0, 0)
                     
                 elif base_color == "orange":
-                    color: Tuple[int, int, int] = (int(intensity * 255), int(intensity * 165), 0)
+                    color: Tuple[int, int, int] = (255, 165, 0)
                 else:
-                    color = (0, 0, int(intensity * 255))
+                    color = (0, 0, 255)
                     
-                cell_size = CELL_SIZE / TRIANGULATION_GRANULARITY
-                rect = pygame.Rect(i * cell_size, j * cell_size, cell_size, cell_size)
+                rect = pygame.Rect((i //TRIANGULATION_GRANULARITY) * CELL_SIZE, (j // TRIANGULATION_GRANULARITY) * CELL_SIZE, CELL_SIZE, CELL_SIZE)
                 pygame.draw.rect(surface, color, rect)
-                        
+                
 
 def draw_friend_communication(surface: pygame.Surface,
                               friend_drones: List[Any],
@@ -873,7 +885,6 @@ class AirTrafficEnv:
                 
             if self.show_target_lines:
                 self.draw_target_lines(self.sim_surface)
-                
             
             for friend in self.friend_drones:
                 friend.draw(self.sim_surface, self.show_friend_detection_range, self.show_friend_comm_range, self.show_trajectory, self.show_debug)
