@@ -20,8 +20,8 @@ EPISODES: int = 2  # Number of episodes to run
 EPSILON: int = 2
 
 # -------- Drone Counts --------
-FRIEND_COUNT: int = 100 # 10
-ENEMY_COUNT: int = 100 # 10
+FRIEND_COUNT: int = 40 # 10
+ENEMY_COUNT: int = 40 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
@@ -68,7 +68,7 @@ NEUTRALIZATION_PROB_FRIEND_ALIVE = 0.5 # 0 # 0.5  # Probabilidade de o amigo sob
 NEUTRALIZATION_PROB_ENEMY_ALIVE = 0.2 # 0 # 0.2   # Probabilidade de o inimigo sobreviver (amigo removido)
 NEUTRALIZATION_PROB_BOTH_DEAD = 1 - (NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALIZATION_PROB_ENEMY_ALIVE)
 INITIAL_DISTANCE = INTERNAL_RADIUS * 1.4
-INITIAL_N_LAYERS: int = 4
+INITIAL_N_LAYERS: int = 2
 THRESHOLD_PROJECTION = INTERNAL_RADIUS * 0.5  # Máxima distância permitida entre o drone e sua projeção na reta do inimigo
 MIN_COMMUNICATION_HOLD: int = 2 # 2 # 0 # Minimum friend communication hold time
 HOLD_SPREAD: bool = True # True # False

@@ -148,13 +148,13 @@ def draw_friend_communication(surface: pygame.Surface,
         for nbr in getattr(drone, "neighbors", []):
             # para não duplicar a linha, desenha só se id for menor
             if drone.drone_id < nbr.drone_id:
-                # draw_dashed_line(surface,
-                #                  (255, 255, 255, 255),
-                #                  drone.pos, nbr.pos,
-                #                  width=2,
-                #                  dash_length=5,
-                #                  space_length=5)
-                pygame.draw.line(surface, (255, 255, 255, 128), (drone.pos.x, drone.pos.y), (nbr.pos.x, nbr.pos.y), 2)
+                draw_dashed_line(surface,
+                                 (255, 255, 255, 128),
+                                 drone.pos, nbr.pos,
+                                 width=2,
+                                 dash_length=5,
+                                 space_length=5)
+                # pygame.draw.line(surface, (255, 255, 255, 128), (drone.pos.x, drone.pos.y), (nbr.pos.x, nbr.pos.y), 2)
 
 
 def draw_direction(surface: pygame.Surface, global_intensity: np.ndarray,
@@ -250,16 +250,16 @@ class AirTrafficEnv:
 
         # Display flags
         self.save_frames = False
-        self.show_graph: bool = False
+        self.show_graph: bool = True
         self.paused: bool = False
         self.show_friend_detection_range: bool = True
-        self.show_enemy_detection_range: bool = False
+        self.show_enemy_detection_range: bool = True
         self.show_dashed_lines: bool = True
         self.show_arrows: bool = False
-        self.show_target_lines: bool = False  # Draw line between enemy and its closest target
+        self.show_target_lines: bool = False
         self.show_friend_comm_range: bool = False
         self.show_trajectory: bool = True   
-        self.show_debug = False
+        self.show_debug = True
         self.return_to_base = False
         self.export_to_tacview: bool = False     
         self.frame_number = 0
@@ -291,12 +291,12 @@ class AirTrafficEnv:
         graph_x: int = SIM_WIDTH  # Graph area begins at SIM_WIDTH
         
         self.buttons: List[Button] = []
-        self.buttons.append(Button((graph_x + 10, row1_y, button_width, button_height), "Tog. Graph", self.toggle_graph, toggled=False))
+        self.buttons.append(Button((graph_x + 10, row1_y, button_width, button_height), "Tog. Graph", self.toggle_graph, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row1_y, button_width, button_height), "Pause", self.toggle_pause, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row1_y, button_width, button_height), "Reset", self.reset_simulation))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row1_y, button_width, button_height), "Exit", self.exit_env))
         self.buttons.append(Button((graph_x + 10, row2_y, button_width, button_height), "Tog. Friend Range", self.toggle_friend_range, toggled=True))
-        self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row2_y, button_width, button_height), "Tog. Enemy Range", self.toggle_enemy_range, toggled=False))
+        self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row2_y, button_width, button_height), "Tog. Enemy Range", self.toggle_enemy_range, toggled=True))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Dashed", self.toggle_dashed, toggled=True))
         # self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Arrows", self.toggle_arrows, toggled=False))
         self.buttons.append(Button((graph_x + 10, row3_y, button_width, button_height), "Tog. Comm Range", self.toggle_comm_range, toggled=False))
@@ -304,7 +304,7 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Save Frames", self.toogle_save_frames, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Target Lines", self.toggle_target_lines, toggled=False))
         self.buttons.append(Button((graph_x + 10, row4_y, button_width, button_height), "Tog. Trajetory", self.toggle_trajetory, toggled=True))
-        self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=False))
+        self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=True))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False))
 
     def is_in_demilitarized_zone(self, position: pygame.math.Vector2) -> bool:

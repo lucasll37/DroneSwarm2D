@@ -231,7 +231,7 @@ class EnemyDrone:
                 self.escape_steps_count = 0
                 self.detector = None
                 
-                if self.behavior_type in ["formation, biformation", "focal-direct"]:
+                if self.behavior_type in ["formation", "biformation", "focal-direct"]:
                     self.behavior_type = "direct"
 
             return

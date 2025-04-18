@@ -46,7 +46,7 @@ def main() -> None:
     env = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior="biformation", demilitarized_zones=DMZ)
     # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ, seed=None)
     
-    episodes: int = 1  # Set number of episodes to run
+    episodes: int = 5  # Set number of episodes to run
     
     # Main loop: run for the specified number of episodes.
     for episode in range(episodes):
