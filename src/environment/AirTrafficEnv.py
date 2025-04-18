@@ -136,9 +136,10 @@ def draw_heatmap(surface: pygame.Surface, global_intensity: np.ndarray, base_col
                 
                 
 def draw_triangulation(surface: pygame.Surface, global_triangulation: np.ndarray, base_color: str) -> None:
-    for i in range(GRID_WIDTH):
-        for j in range(GRID_HEIGHT):
+    for i in range(global_triangulation.shape[0]):
+        for j in range(global_triangulation.shape[1]):
             detections: float = global_triangulation[i, j]
+            
             intensity = min(1, detections / N_LINE_SIGHT_CROSSING)
             if intensity > 1e-6:
                 if base_color == "red":
@@ -148,7 +149,9 @@ def draw_triangulation(surface: pygame.Surface, global_triangulation: np.ndarray
                     color: Tuple[int, int, int] = (int(intensity * 255), int(intensity * 165), 0)
                 else:
                     color = (0, 0, int(intensity * 255))
-                rect = pygame.Rect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                    
+                cell_size = CELL_SIZE / TRIANGULATION_GRANULARITY
+                rect = pygame.Rect(i * cell_size, j * cell_size, cell_size, cell_size)
                 pygame.draw.rect(surface, color, rect)
                         
 
@@ -851,7 +854,7 @@ class AirTrafficEnv:
 
             if self.show_debug:
                 # Compute global enemy intensity from friend drones
-                global_triangulation = np.zeros((GRID_WIDTH, GRID_HEIGHT))
+                global_triangulation = np.zeros((GRID_WIDTH * TRIANGULATION_GRANULARITY, GRID_HEIGHT * TRIANGULATION_GRANULARITY))
                 global_enemy_intensity = np.zeros((GRID_WIDTH, GRID_HEIGHT))
                 global_enemy_direction = np.zeros((GRID_WIDTH, GRID_HEIGHT, 2))
                 

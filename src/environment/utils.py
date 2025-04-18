@@ -365,8 +365,9 @@ def pos_to_cell(pos: pygame.math.Vector2, cell_size: int = CELL_SIZE) -> Tuple[i
     Returns:
         Tuple[int, int]: Cell coordinates (x, y).
     """
-    x: int = min(int(pos.x // cell_size), GRID_WIDTH - 1)
-    y: int = min(int(pos.y // cell_size), GRID_HEIGHT - 1)
+    x: int = int(pos.x // cell_size)
+    y: int = int(pos.y // cell_size)
+    
     return (x, y)
 
 # -----------------------------------------------------------------------------

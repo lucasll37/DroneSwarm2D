@@ -132,7 +132,7 @@ class FriendDrone:
         
         
         # Triangulation matrices
-        self.passive_detection_matrix = np.zeros((GRID_WIDTH, GRID_HEIGHT))
+        self.passive_detection_matrix = np.zeros((GRID_WIDTH * TRIANGULATION_GRANULARITY, GRID_HEIGHT * TRIANGULATION_GRANULARITY))
         self.direction_vectors = {}
         
         # Detection matrices
@@ -220,7 +220,7 @@ class FriendDrone:
     # -------------------------------------------------------------------------  
     def update_passive_detection(self, enemy_drones: List[Any]) -> None:
         self.direction_vectors = {}
-        self.passive_detection_matrix = np.zeros((GRID_WIDTH, GRID_HEIGHT))
+        self.passive_detection_matrix = np.zeros((self.passive_detection_matrix.shape[0], self.passive_detection_matrix.shape[1]))
         
         detection_range = self._get_detection_range()
         for enemy in enemy_drones:
@@ -239,23 +239,25 @@ class FriendDrone:
                 self.direction_vectors[direction_hash] = direction
                 
                 # Linha de visada
-                steps = int(math.ceil(detection_range / CELL_SIZE))
-                start_cell = pos_to_cell(self.pos)
+                cell_size = CELL_SIZE / TRIANGULATION_GRANULARITY
+                steps = int(math.ceil(detection_range / cell_size))
+                start_cell = pos_to_cell(self.pos, cell_size)
+                self.passive_detection_matrix[start_cell] = 1
                 
                 for i in range(1, steps + 1):
                     # Calcula posição ao longo da linha
-                    pos = self.pos + direction * (i * CELL_SIZE)
+                    pos = self.pos + direction * (i * cell_size)
                     
                     # Converte para célula
-                    cell = pos_to_cell(pos)
+                    cell = pos_to_cell(pos, cell_size)
                     
                     # Verifica se está dentro dos limites da grade
-                    if 0 <= cell[0] < GRID_WIDTH and 0 <= cell[1] < GRID_HEIGHT:
+                    if 0 <= cell[0] < GRID_WIDTH * TRIANGULATION_GRANULARITY and 0 <= cell[1] < GRID_HEIGHT * TRIANGULATION_GRANULARITY:
                         # Marca a célula
                         self.passive_detection_matrix[cell] = 1
                         
                         # Verifica se atingiu o limite de distância
-                        if i * CELL_SIZE >= detection_range:
+                        if i * CELL_SIZE * TRIANGULATION_GRANULARITY >= detection_range:
                             break
 
     # -------------------------------------------------------------------------

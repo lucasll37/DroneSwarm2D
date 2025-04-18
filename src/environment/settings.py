@@ -75,6 +75,7 @@ MIN_COMMUNICATION_HOLD: int = 2 # 2 # 0 # Minimum friend communication hold time
 HOLD_SPREAD: bool = True # True # False
 DETECTION_MODE: str = "triangulation" # "triangulation"  # "direct"
 N_LINE_SIGHT_CROSSING: int = 3
+TRIANGULATION_GRANULARITY: int = 2
 
 # -------- AEW --------
 AEW_COUNT: int = 0 # 0 # 5
