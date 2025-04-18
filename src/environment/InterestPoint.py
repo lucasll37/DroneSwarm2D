@@ -31,7 +31,7 @@ class CircleInterestPoint:
     """
 
     def __init__(self, center: pygame.math.Vector2, internal_radius: float, external_radius: float,
-                 color: Tuple[int, int, int] = (0, 255, 0)):
+                 color: Tuple[int, int, int] = (0, 255, 0), seed: Optional[int] = None) -> None:
         """
         Initialize the interest point as a circle.
         

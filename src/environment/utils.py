@@ -19,10 +19,12 @@ import matplotlib.pyplot as plt
 # Matplotlib utilities
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, used for 3D plotting
 from matplotlib.backends.backend_agg import FigureCanvasAgg
+from numba import njit
 
 # Project-specific imports
 from settings import *
-from typing import Any, Tuple, Dict
+from typing import Any, Tuple, Dict, Optional
+
 
 # -----------------------------------------------------------------------------
 # Drawing Utilities
@@ -87,6 +89,7 @@ def draw_dashed_line(surface: pygame.Surface, color: Tuple[int, int, int],
 # -----------------------------------------------------------------------------
 # Gaussian Bump Kernel Functions
 # -----------------------------------------------------------------------------
+@njit
 def symmetrical_flat_topped_gaussian_10x10(value: float, sigma: float, flat_radius: float) -> np.ndarray:
     """
     Creates a 10x10 Gaussian bump with a flat top.
@@ -103,15 +106,25 @@ def symmetrical_flat_topped_gaussian_10x10(value: float, sigma: float, flat_radi
         np.ndarray: A 10x10 array representing the bump.
     """
     kernel_size = 10
+    # Create a coordinate grid manually instead of using meshgrid
     x = np.linspace(-4.5, 4.5, kernel_size)
-    xx, yy = np.meshgrid(x, x)
-    r = np.sqrt(xx**2 + yy**2)
-
-    # Gaussian bump
-    bump = np.exp(-0.5 * (r / sigma)**2)
     
-    # Apply flat top where distance is less than flat_radius
-    bump[r < flat_radius] = 1.0
+    # Initialize arrays for the bump
+    bump = np.empty((kernel_size, kernel_size), dtype=np.float64)
+    
+    # Calculate the bump values directly
+    for i in range(kernel_size):
+        y = x[i]  # y-coordinate
+        for j in range(kernel_size):
+            xi = x[j]  # x-coordinate
+            # Calculate distance from center
+            r = np.sqrt(xi**2 + y**2)
+            
+            # Apply flat top or Gaussian falloff
+            if r < flat_radius:
+                bump[i, j] = 1.0
+            else:
+                bump[i, j] = np.exp(-0.5 * (r / sigma)**2)
     
     return value * bump
 
@@ -131,7 +144,7 @@ def smooth_matrix_with_kernel_10x10(matrix: np.ndarray,
         direction (np.ndarray): Array with same dimensions as matrix plus one extra dimension
                                 for the direction vector (e.g., shape (n_rows, n_cols, 2)).
         sigma (float): Standard deviation for the Gaussian portion.
-        flat_radius (float): Flat top radius for the bump.
+        flat_radius (float): Radius (in continuous coordinates) where the value is constant.
 
     Returns:
         Tuple[np.ndarray, np.ndarray]: 
@@ -143,50 +156,160 @@ def smooth_matrix_with_kernel_10x10(matrix: np.ndarray,
     peaks = np.argwhere(matrix > 0)
     kernel_size = 10
     anchor = kernel_size // 2
+    
+    # Otimização: verifique se temos muitos picos para pré-calcular
+    if len(peaks) > 50:  # Limite arbitrário, ajuste conforme necessário
+        # Calcule as dimensões da matriz de picos para pré-alocação
+        peak_values = {}
+        for (i, j) in peaks:
+            value = matrix[i, j]
+            if value not in peak_values:
+                # Calcule o bump apenas para valores únicos
+                peak_values[value] = symmetrical_flat_topped_gaussian_10x10(value, sigma, flat_radius)
+    else:
+        peak_values = None
 
     for (i, j) in peaks:
         value = matrix[i, j]
-        bump = symmetrical_flat_topped_gaussian_10x10(value, sigma, flat_radius)
-        bump_direction = direction[i, j]  # Direction vector at the peak
+        
+        # Use o bump pré-calculado, se disponível
+        if peak_values is not None:
+            bump = peak_values[value]
+        else:
+            bump = symmetrical_flat_topped_gaussian_10x10(value, sigma, flat_radius)
+            
+        bump_direction = direction[i, j]  # Vetor de direção no pico
 
-        i_start = i - anchor
-        i_end   = i_start + kernel_size
-        j_start = j - anchor
-        j_end   = j_start + kernel_size
+        # Calcule índices mais eficientemente
+        i_start = max(0, i - anchor)
+        j_start = max(0, j - anchor)
+        i_end = min(matrix.shape[0], i + anchor)
+        j_end = min(matrix.shape[1], j + anchor)
 
-        bump_i_start = 0
-        bump_j_start = 0
-        bump_i_end = kernel_size
-        bump_j_end = kernel_size
+        # Calcule índices do bump
+        bump_i_start = max(0, anchor - (i - i_start))
+        bump_j_start = max(0, anchor - (j - j_start))
+        bump_i_end = bump_i_start + (i_end - i_start)
+        bump_j_end = bump_j_start + (j_end - j_start)
 
-        # Adjust indices if the region goes beyond the matrix borders
-        if i_start < 0:
-            bump_i_start = -i_start
-            i_start = 0
-        if j_start < 0:
-            bump_j_start = -j_start
-            j_start = 0
-        if i_end > matrix.shape[0]:
-            bump_i_end -= (i_end - matrix.shape[0])
-            i_end = matrix.shape[0]
-        if j_end > matrix.shape[1]:
-            bump_j_end -= (j_end - matrix.shape[1])
-            j_end = matrix.shape[1]
-
+        # Obtenha visualizações em vez de cópias quando possível
         region = result[i_start:i_end, j_start:j_end]
         bump_region = bump[bump_i_start:bump_i_end, bump_j_start:bump_j_end]
 
-        # Create a mask for pixels where the bump value is greater than the current value
+        # Crie uma máscara para pixels onde o valor do bump é maior que o valor atual
         mask = bump_region > region
-        region = np.maximum(region, bump_region)
-        result[i_start:i_end, j_start:j_end] = region
+        
+        # Use operações in-place quando possível
+        np.maximum(region, bump_region, out=region)
 
-        # Update the direction vectors where the bump increased the value
-        region_direction = result_direction[i_start:i_end, j_start:j_end]
-        region_direction[mask] = bump_direction
-        result_direction[i_start:i_end, j_start:j_end] = region_direction
+        # Atualize os vetores de direção onde o bump aumentou o valor
+        for dim in range(direction.shape[-1]):
+            for di in range(i_end - i_start):
+                for dj in range(j_end - j_start):
+                    if mask[di, dj]:
+                        result_direction[i_start + di, j_start + dj, dim] = bump_direction[dim]
 
     return result, result_direction
+# def symmetrical_flat_topped_gaussian_10x10(value: float, sigma: float, flat_radius: float) -> np.ndarray:
+#     """
+#     Creates a 10x10 Gaussian bump with a flat top.
+    
+#     The continuous coordinates range from -4.5 to +4.5 to ensure symmetry.
+#     The bump has a flat top (value = 1) within the given flat_radius.
+
+#     Args:
+#         value (float): Peak value to scale at the center.
+#         sigma (float): Standard deviation for the Gaussian portion.
+#         flat_radius (float): Radius (in continuous coordinates) where the value is constant.
+
+#     Returns:
+#         np.ndarray: A 10x10 array representing the bump.
+#     """
+#     kernel_size = 10
+#     x = np.linspace(-4.5, 4.5, kernel_size)
+#     xx, yy = np.meshgrid(x, x)
+#     r = np.sqrt(xx**2 + yy**2)
+
+#     # Gaussian bump
+#     bump = np.exp(-0.5 * (r / sigma)**2)
+    
+#     # Apply flat top where distance is less than flat_radius
+#     bump[r < flat_radius] = 1.0
+    
+#     return value * bump
+
+# def smooth_matrix_with_kernel_10x10(matrix: np.ndarray,
+#                                     direction: np.ndarray,
+#                                     sigma: float = 1.0,
+#                                     flat_radius: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+#     """
+#     Applies a 10x10 Gaussian bump (with a flat top) to each positive value in the matrix.
+#     The bump is centered at the pixel (i, j) without changing the original dimensions.
+    
+#     For each peak, if the bump's value is greater than the current value in the region,
+#     both the intensity and the corresponding direction vector are updated.
+
+#     Args:
+#         matrix (np.ndarray): 2D array with values between 0 and 1.
+#         direction (np.ndarray): Array with same dimensions as matrix plus one extra dimension
+#                                 for the direction vector (e.g., shape (n_rows, n_cols, 2)).
+#         sigma (float): Standard deviation for the Gaussian portion.
+#         flat_radius (float): Flat top radius for the bump.
+
+#     Returns:
+#         Tuple[np.ndarray, np.ndarray]: 
+#             - result: Updated matrix with the applied bumps.
+#             - result_direction: Updated direction array.
+#     """
+#     result = np.copy(matrix)
+#     result_direction = np.copy(direction)
+#     peaks = np.argwhere(matrix > 0)
+#     kernel_size = 10
+#     anchor = kernel_size // 2
+
+#     for (i, j) in peaks:
+#         value = matrix[i, j]
+#         bump = symmetrical_flat_topped_gaussian_10x10(value, sigma, flat_radius)
+#         bump_direction = direction[i, j]  # Direction vector at the peak
+
+#         i_start = i - anchor
+#         i_end   = i_start + kernel_size
+#         j_start = j - anchor
+#         j_end   = j_start + kernel_size
+
+#         bump_i_start = 0
+#         bump_j_start = 0
+#         bump_i_end = kernel_size
+#         bump_j_end = kernel_size
+
+#         # Adjust indices if the region goes beyond the matrix borders
+#         if i_start < 0:
+#             bump_i_start = -i_start
+#             i_start = 0
+#         if j_start < 0:
+#             bump_j_start = -j_start
+#             j_start = 0
+#         if i_end > matrix.shape[0]:
+#             bump_i_end -= (i_end - matrix.shape[0])
+#             i_end = matrix.shape[0]
+#         if j_end > matrix.shape[1]:
+#             bump_j_end -= (j_end - matrix.shape[1])
+#             j_end = matrix.shape[1]
+
+#         region = result[i_start:i_end, j_start:j_end]
+#         bump_region = bump[bump_i_start:bump_i_end, bump_j_start:bump_j_end]
+
+#         # Create a mask for pixels where the bump value is greater than the current value
+#         mask = bump_region > region
+#         region = np.maximum(region, bump_region)
+#         result[i_start:i_end, j_start:j_end] = region
+
+#         # Update the direction vectors where the bump increased the value
+#         region_direction = result_direction[i_start:i_end, j_start:j_end]
+#         region_direction[mask] = bump_direction
+#         result_direction[i_start:i_end, j_start:j_end] = region_direction
+
+#     return result, result_direction
 
 # -----------------------------------------------------------------------------
 # Coordinate Conversion Functions
@@ -350,14 +473,19 @@ def can_intercept(chaser_pos: pygame.math.Vector2,
         if not t_candidates:
             return False
         t = min(t_candidates)
+
+    # Se o tempo de interceptação for menor ou igual a zero, não é possível interceptar
+    if t <= 0:
+        return False
     
     # Calcula o tempo que o alvo levaria para atingir o ponto de interesse
     # Se target_vel for zero, não há movimento (não é possível interceptar em movimento)
     if target_vel.length() == 0:
         return False
+    
     t_PI = (point_of_interest - target_pos).length() / target_vel.length()
     
-    # O perseguidor consegue interceptar se o tempo de interceptação for menor que o tempo para o alvo atingir o PI
+    # O perseguidor consegue interceptar se o tempo de interceptação for menor que o tempo para o alvo atingir o PI    
     return t < t_PI
 
 # -----------------------------------------------------------------------------
@@ -463,7 +591,7 @@ def plot_individual_states_matplotlib(state: Dict) -> None:
 # Sparse Matrix Generation
 # -----------------------------------------------------------------------------
 def generate_sparse_matrix(shape: Tuple[int, int] = (GRID_WIDTH, GRID_HEIGHT),
-                           max_nonzero: int = 20) -> Tuple[np.ndarray, np.ndarray]:
+                           max_nonzero: int = 20, seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generates a sparse matrix of the given shape with up to 'max_nonzero' nonzero elements.
     

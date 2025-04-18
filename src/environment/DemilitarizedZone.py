@@ -117,7 +117,7 @@ class CircleDMZ:
     dmz_id_counter: int = 0
 
     def __init__(self, center: pygame.math.Vector2, radius: float,
-                 color: Tuple[int, int, int] = (0, 0, 255)):
+                 color: Tuple[int, int, int] = (0, 0, 255), seed: Optional[int] = None) -> None:
         """
         Inicializa uma zona desmilitarizada circular.
         

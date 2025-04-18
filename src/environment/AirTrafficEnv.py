@@ -213,7 +213,13 @@ class AirTrafficEnv:
     def __init__(self, max_steps: int = 5_000, mode: Optional[str] = 'human',
                  friend_behavior: Optional[str] = 'planning',
                  enemy_behavior: Optional[str] = None,
-                 demilitarized_zones: List[Tuple[float, float, float]] = None) -> None:
+                 demilitarized_zones: List[Tuple[float, float, float]] = None,
+                 seed: Optional[int] = None) -> None:
+        
+       
+        self.seed = seed if seed is not None else random.randint(0, 10000000)
+        self.rng = random.Random(self.seed)
+        self.np_rng = np.random.RandomState(self.seed)
         
         self.simulation_start_time = datetime.utcnow()
         self.current_time = datetime.utcnow()
@@ -271,8 +277,7 @@ class AirTrafficEnv:
                 zone_center = pygame.math.Vector2(x, y)
                 # Verificar se a zona não intercepta o ponto de interesse
                 if zone_center.distance_to(INTEREST_POINT_CENTER) > INTERNAL_RADIUS + radius:
-                    self.demilitarized_zones.append(CircleDMZ(zone_center, radius))
-                    # self.demilitarized_zones.append(DemilitarizedZone.CircleDMZ(zone_center, radius))
+                    self.demilitarized_zones.append(CircleDMZ(zone_center, radius, seed=self.seed))
         
         # Initialize UI buttons with positions relative to the simulation and graph areas.
         button_width: int = 130
@@ -429,9 +434,10 @@ class AirTrafficEnv:
         
         # Create an interest point (a circle at the simulation center)
         center = CENTER
-        self.interest_point = InterestPoint.CircleInterestPoint(CENTER, INTERNAL_RADIUS, EXTERNAL_RADIUS)
+        self.interest_point = InterestPoint.CircleInterestPoint(CENTER, INTERNAL_RADIUS, EXTERNAL_RADIUS, seed=self.seed)
         
         # Initialize friend drones in a regular polygon around the center
+        FriendDrone.set_class_seed(seed=self.seed)
         self.friend_drones = []
         for i in range(RADAR_COUNT):
             angle = 2 * math.pi * i / RADAR_COUNT
@@ -472,6 +478,7 @@ class AirTrafficEnv:
             self.friend_drones.append(drone)
         
         # Initialize enemy drones
+        EnemyDrone.set_class_seed(seed=self.seed)
         self.enemy_drones = [EnemyDrone(self.interest_point.center, behavior_type=self.enemy_behavior)
                              for _ in range(ENEMY_COUNT)]
         
@@ -665,7 +672,7 @@ class AirTrafficEnv:
                         continue
                     
                     if friend.pos.distance_to(enemy.pos) <= NEUTRALIZATION_RANGE:
-                        rand_val = random.random()
+                        rand_val = self.rng.random()
                         # If the friendly drone is of type AEW, mutual elimination always occurs.
                         if friend.behavior_type == "AEW" and rand_val <= NEUTRALIZATION_PROB_BOTH_DEAD:
                             friends_to_remove.add(i)
@@ -796,6 +803,11 @@ class AirTrafficEnv:
         dist_text = f"Total distance traveled: {self.total_distance_traveled:.1f} px"
         dist_label = self.font.render(dist_text, True, (0, 255, 0))
         surface.blit(dist_label, (10, 150))
+        
+        # Seed
+        dist_text = f"Randomness seed: {self.seed}"
+        dist_label = self.font.render(dist_text, True, (0, 255, 0))
+        surface.blit(dist_label, (10, 170))
         
         duration = current_time - self.simulation_start_time
         duration_str = str(duration).split(".")[0]

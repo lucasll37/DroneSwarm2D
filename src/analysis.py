@@ -25,7 +25,27 @@ if config_dir not in sys.path:
     
 # Project-specific imports
 from AirTrafficEnv import AirTrafficEnv
-from settings import *
+from settings import (
+    FULL_WIDTH, FULL_HEIGHT, EPISODES,
+    FRIEND_COUNT, ENEMY_COUNT, AEW_COUNT, RADAR_COUNT, BROKEN_COUNT,
+    INITIAL_AGGRESSIVENESS, ESCAPE_STEPS,
+    SIM_WIDTH, SIM_HEIGHT, GRAPH_WIDTH, GRAPH_HEIGHT,
+    CELL_SIZE, GRID_WIDTH, GRID_HEIGHT,
+    DECAY_FACTOR, ENEMY_DETECTION_RANGE, FRIEND_DETECTION_RANGE,
+    COMMUNICATION_RANGE, MESSAGE_LOSS_PROBABILITY, TARGET_INFLUENCE,
+    DETECTION_MODE, FRIEND_SPEED, ENEMY_SPEED, AEW_SPEED,
+    PLOT_THRESHOLD, INTEREST_POINT_ATTACK_RANGE,
+    INTEREST_POINT_INITIAL_HEALTH, INTEREST_POINT_DAMAGE,
+    INTERNAL_RADIUS, EXTERNAL_RADIUS,
+    NEUTRALIZATION_RANGE, NEUTRALIZATION_PROB_FRIEND_ALIVE,
+    NEUTRALIZATION_PROB_ENEMY_ALIVE, NEUTRALIZATION_PROB_BOTH_DEAD,
+    INITIAL_DISTANCE, THRESHOLD_PROJECTION, MIN_COMMUNICATION_HOLD,
+    HOLD_SPREAD, AEW_RANGE, AEW_DETECTION_RANGE,
+    RADAR_RANGE, RADAR_DETECTION_RANGE,
+    UPDATE_STATE_BROKEN, GEO_TOP_LEFT, GEO_BOTTOM_RIGHT,
+    FONT_FAMILY, EPSILON, DT_STEP,
+    DMZ
+)
 
 # -----------------------------------------------------------------------------
 # Environment Variables Saving Function
@@ -170,10 +190,11 @@ def main() -> None:
     csv_path = os.path.join(save_folder, "results.csv")
     
     # Create an instance of the Air Traffic Environment.
-    env: AirTrafficEnv = AirTrafficEnv(mode=None, friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ)
+    env: AirTrafficEnv = AirTrafficEnv(mode=None, friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ, seed=42)
     
     # Run episodes and persist results.
-    for episode in range(EPISODES):
+    for episode in range(1):
+    # for episode in range(EPISODES):
         obs, done = env.reset()
         total_reward: float = 0.0
         

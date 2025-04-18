@@ -20,8 +20,8 @@ EPISODES: int = 2  # Number of episodes to run
 EPSILON: int = 2
 
 # -------- Drone Counts --------
-FRIEND_COUNT: int = 40 # 10
-ENEMY_COUNT: int = 40 # 10
+FRIEND_COUNT: int = 50 # 10
+ENEMY_COUNT: int = 50 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected

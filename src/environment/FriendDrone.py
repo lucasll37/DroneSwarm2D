@@ -52,6 +52,12 @@ class FriendDrone:
     
     # AI model (loaded on demand)
     model = None
+    
+    # Seed da classe - inicialmente None, será gerada se não for definida explicitamente
+    class_seed = None
+    class_rng = None
+    class_np_rng = None
+    
 
     # -------------------------------------------------------------------------
     # Initialization
@@ -75,6 +81,9 @@ class FriendDrone:
             broken: If True, the drone will provide faulty detection information.
             detection_mode: Detection mode - "direct" or "triangulation"
         """
+        if FriendDrone.class_seed is None:
+            FriendDrone.set_class_seed()
+            
         # Basic properties
         self.pos: pygame.math.Vector2 = pygame.math.Vector2(position[0], position[1])
         self.interest_point_center = interest_point_center
@@ -135,6 +144,13 @@ class FriendDrone:
         
         # Set appropriate image based on drone type
         self._setup_drone_image()
+                    
+    @classmethod
+    def set_class_seed(cls, seed=None):            
+        cls.class_seed = seed if seed is not None else random.randint(0, 10000000)
+        cls.class_rng = random.Random(cls.class_seed)
+        cls.class_np_rng = np.random.RandomState(cls.class_seed)
+            
             
     def _setup_drone_image(self) -> None:
         """
@@ -816,7 +832,7 @@ class FriendDrone:
         for other in neighbors:
             connections += 1
             messages += 2
-            if random.random() > MESSAGE_LOSS_PROBABILITY:
+            if FriendDrone.class_rng.random() > MESSAGE_LOSS_PROBABILITY:
                 self.merge_enemy_matrix(other)
                 self.merge_friend_matrix(other)
 
@@ -871,8 +887,8 @@ class FriendDrone:
         
         # Generate broken states if not already generated
         if self.broken_enemy_direction is None:
-            self.broken_enemy_intensity, self.broken_enemy_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
-            self.broken_friend_intensity, self.broken_friend_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
+            self.broken_enemy_intensity, self.broken_enemy_direction = generate_sparse_matrix(region_shape, max_nonzero=10, seed=self.seed)
+            self.broken_friend_intensity, self.broken_friend_direction = generate_sparse_matrix(region_shape, max_nonzero=10, seed=self.seed)
         
         # Extract submatrices for region of interest
         region_enemy_intensity = self.enemy_intensity[x_min:x_max+1, y_min:y_max+1]
@@ -899,8 +915,8 @@ class FriendDrone:
             return
         else:
             # Generate new random states when timer expires
-            self.broken_enemy_intensity, self.broken_enemy_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
-            self.broken_friend_intensity, self.broken_friend_direction = generate_sparse_matrix(region_shape, max_nonzero=10)
+            self.broken_enemy_intensity, self.broken_enemy_direction = generate_sparse_matrix(region_shape, max_nonzero=10, seed=self.seed)
+            self.broken_friend_intensity, self.broken_friend_direction = generate_sparse_matrix(region_shape, max_nonzero=10, seed=self.seed)
             
             # Update timestamps for region
             current_time: int = pygame.time.get_ticks()
@@ -1241,9 +1257,8 @@ class FriendDrone:
         Apply debug behavior - move toward interest point.
         """
         self.info = ("DEBUG", None, None, None)
-        target_vector = self.interest_point_center - self.pos
-        direction = target_vector.normalize() if target_vector.length() > 0 else pygame.math.Vector2(0, 0)
-        self.vel = direction * FRIEND_SPEED if not self.fixed else pygame.math.Vector2(0, 0)
+        self.pos = pygame.math.Vector2(0.25 * SIM_WIDTH, 0.5 * SIM_HEIGHT)
+        self.behavior_type = "planning"
         self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
             
     def _apply_u_debug_behavior(self) -> None:
