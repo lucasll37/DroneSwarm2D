@@ -133,6 +133,23 @@ def draw_heatmap(surface: pygame.Surface, global_intensity: np.ndarray, base_col
                     color = (0, 0, int(intensity * 255))
                 rect = pygame.Rect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE)
                 pygame.draw.rect(surface, color, rect)
+                
+                
+def draw_triangulation(surface: pygame.Surface, global_triangulation: np.ndarray, base_color: str) -> None:
+    for i in range(GRID_WIDTH):
+        for j in range(GRID_HEIGHT):
+            detections: float = global_triangulation[i, j]
+            intensity = min(1, detections / N_LINE_SIGHT_CROSSING)
+            if intensity > 1e-6:
+                if base_color == "red":
+                    color: Tuple[int, int, int] = (int(intensity * 255), 0, 0)
+                    
+                elif base_color == "orange":
+                    color: Tuple[int, int, int] = (int(intensity * 255), int(intensity * 165), 0)
+                else:
+                    color = (0, 0, int(intensity * 255))
+                rect = pygame.Rect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                pygame.draw.rect(surface, color, rect)
                         
 
 def draw_friend_communication(surface: pygame.Surface,
@@ -832,22 +849,22 @@ class AirTrafficEnv:
             self.sim_surface.fill((0, 0, 0))
             draw_grid(self.sim_surface)
 
-            # Compute global enemy intensity from friend drones
-            global_enemy_intensity = np.zeros((GRID_WIDTH, GRID_HEIGHT))
-            global_enemy_direction = np.zeros((GRID_WIDTH, GRID_HEIGHT, 2))
-            
-            for drone in self.friend_drones:
-                global_enemy_intensity = np.maximum(global_enemy_intensity, drone.enemy_intensity)
-                global_enemy_direction = np.where(np.expand_dims(drone.enemy_intensity, axis=2) > 0,
-                                                  drone.enemy_direction, global_enemy_direction)
-
             if self.show_debug:
-                draw_heatmap(self.sim_surface, global_enemy_intensity, "orange") # red
+                # Compute global enemy intensity from friend drones
+                global_triangulation = np.zeros((GRID_WIDTH, GRID_HEIGHT))
+                global_enemy_intensity = np.zeros((GRID_WIDTH, GRID_HEIGHT))
+                global_enemy_direction = np.zeros((GRID_WIDTH, GRID_HEIGHT, 2))
+                
+                for drone in self.friend_drones:
+                    global_triangulation = np.add(global_triangulation, drone.passive_detection_matrix)
+                    global_enemy_intensity = np.maximum(global_enemy_intensity, drone.enemy_intensity)
+                    global_enemy_direction = np.where(np.expand_dims(drone.enemy_intensity, axis=2) > 0,
+                                                    drone.enemy_direction, global_enemy_direction)
+
+                draw_triangulation(self.sim_surface, global_triangulation, "orange")
+                draw_heatmap(self.sim_surface, global_enemy_intensity, "orange")
                 draw_direction(self.sim_surface, global_enemy_intensity, global_enemy_direction, 0.1, show_arrows=self.show_arrows)
             
-            # if self.show_arrows:
-            #     pass
-                
             if self.show_dashed_lines:
                 draw_friend_communication(self.sim_surface, self.friend_drones, show_dashed=self.show_dashed_lines)
                 

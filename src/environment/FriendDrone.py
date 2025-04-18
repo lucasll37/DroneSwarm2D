@@ -119,11 +119,7 @@ class FriendDrone:
         self.aux_friend_detections: Dict[int, Tuple[int, int]] = {}
         self.current_enemy_pos_detection: Dict[int, pygame.math.Vector2] = {}
         self.current_friend_pos_detection: Dict[int, pygame.math.Vector2] = {}
-        
-        # Direction-only detection (prototype)
-        self.enemy_direction_only = np.zeros((GRID_WIDTH, GRID_HEIGHT, 2))  # Unit direction vector
-        self.enemy_detection_confidence = np.zeros((GRID_WIDTH, GRID_HEIGHT))
-        
+                
         # State tracking
         self.state_history = {}
         self.current_state = ""
@@ -133,6 +129,11 @@ class FriendDrone:
         self.last_position = self.pos.copy()
         self.active_connections = 0
         self.messages_sent_this_cycle = 0
+        
+        
+        # Triangulation matrices
+        self.passive_detection_matrix = np.zeros((GRID_WIDTH, GRID_HEIGHT))
+        self.direction_vectors = {}
         
         # Detection matrices
         self.enemy_intensity: np.ndarray = np.zeros((GRID_WIDTH, GRID_HEIGHT))
@@ -183,8 +184,25 @@ class FriendDrone:
             int: The unique drone ID.
         """
         current_id: int = self.__class__.friend_id_counter
-        self.__class__.friend_id_counter += 1
+        FriendDrone.friend_id_counter += 1
         return current_id
+    
+    # -------------------------------------------------------------------------
+    # Detection Range
+    # -------------------------------------------------------------------------
+    def _get_detection_range(self) -> float:
+        """
+        Obtém o alcance de detecção apropriado com base no tipo de drone.
+        
+        Returns:
+            float: Alcance de detecção em pixels.
+        """
+        if self.behavior_type == "AEW":
+            return AEW_DETECTION_RANGE
+        elif self.behavior_type == "RADAR":
+            return RADAR_DETECTION_RANGE
+        else:
+            return FRIEND_DETECTION_RANGE
 
     # -------------------------------------------------------------------------
     # Matrix Decay
@@ -196,386 +214,50 @@ class FriendDrone:
         """
         self.enemy_intensity *= DECAY_FACTOR
         self.friend_intensity *= DECAY_FACTOR
-        
+    
     # -------------------------------------------------------------------------
-    # Passive Detection and Triangulation
+    # Detecção Passiva e Triangulação
     # -------------------------------------------------------------------------  
-    def update_passive_detection_and_triangulate(self, enemy_drones: List[Any], friend_drones: List[Any]) -> None:
-        """
-        Implement passive detection (direction-only) and distributed triangulation.
-        Only processes triangulation data if in "triangulation" mode.
+    def update_passive_detection(self, enemy_drones: List[Any]) -> None:
+        self.direction_vectors = {}
+        self.passive_detection_matrix = np.zeros((GRID_WIDTH, GRID_HEIGHT))
         
-        Args:
-            enemy_drones: List of enemy drones in the environment.
-            friend_drones: List of friendly drones for communication.
-        """
-        # If not in triangulation mode, do nothing
-        if self.detection_mode != "triangulation":
-            return
-            
-        # Initialize data structures if not already created
-        current_time = pygame.time.get_ticks()
-        self.passive_detections = {}  # {direction_hash: (direction, timestamp)}
-        
-        if not hasattr(self, 'direction_history'):
-            self.direction_history = {}  # {direction_hash: (direction, timestamp, source_drone_id)}
-            
-        if not hasattr(self, 'triangulated_targets'):
-            self.triangulated_targets = {}  # {target_id: (position, confidence, last_update_time)}
-        
-        # 1. Detect directions (without distances) of enemies within range
-        self._detect_enemy_directions(enemy_drones, current_time)
-        
-        # 2. Share detections with nearby friendly drones
-        self._share_detections_with_friends(friend_drones, current_time)
-        
-        # 3. Attempt triangulation with available directions
-        self._perform_triangulation(friend_drones, current_time)
-        
-        # 4. Clean up old data
-        self._cleanup_old_data(current_time)
-        
-        # 5. Update existing detection matrices with triangulated targets
-        self._update_matrices_with_triangulation(current_time)
-        
-        # Store for the next cycle
-        if not hasattr(self, 'previous_triangulated'):
-            self.previous_triangulated = {}
-        self.previous_triangulated = self.triangulated_targets.copy()
-        
-        # Store for visualization
-        self.last_triangulated = {
-            target_id: (position, confidence) 
-            for target_id, (position, confidence, _) in self.triangulated_targets.items()
-        }
-
-    def _detect_enemy_directions(self, enemy_drones: List[Any], current_time: int) -> None:
-        """
-        Detect direction vectors to enemy drones within detection range.
-        
-        Args:
-            enemy_drones: List of enemy drones to detect.
-            current_time: Current simulation time.
-        """
+        detection_range = self._get_detection_range()
         for enemy in enemy_drones:
             delta = enemy.pos - self.pos
             distance = delta.length()
             
-            # Check if enemy is within detection range
-            detection_range = self._get_detection_range()
-                
+            # Verifica se o inimigo está dentro do alcance de detecção
             if distance <= detection_range and distance > 0:
-                # Store only the normalized direction (without distance)
+                # Armazena apenas a direção normalizada (sem distância)
                 direction = delta.normalize()
                 
-                # Create a hash for this direction (discretized angle)
+                # Cria um hash para esta direção (ângulo discretizado)
                 angle = math.atan2(direction.y, direction.x)
-                angle_discrete = round(angle / 0.01) * 0.01  # Discretize every 0.01 radians
+                angle_discrete = round(angle / 0.01) * 0.01
                 direction_hash = f"{angle_discrete:.2f}"
+                self.direction_vectors[direction_hash] = direction
                 
-                # Store in passive detections dictionary
-                self.passive_detections[direction_hash] = (direction, current_time)
+                # Linha de visada
+                steps = int(math.ceil(detection_range / CELL_SIZE))
+                start_cell = pos_to_cell(self.pos)
                 
-                # Update direction history
-                self.direction_history[direction_hash] = (direction, current_time, id(self))
-
-    def _get_detection_range(self) -> float:
-        """
-        Get the appropriate detection range based on drone type.
-        
-        Returns:
-            float: Detection range in pixels.
-        """
-        if self.behavior_type == "AEW":
-            return AEW_DETECTION_RANGE
-        elif self.behavior_type == "RADAR":
-            return RADAR_DETECTION_RANGE
-        else:
-            return FRIEND_DETECTION_RANGE
-
-    def _share_detections_with_friends(self, friend_drones: List[Any], current_time: int) -> None:
-        """
-        Share detection data with nearby friendly drones.
-        
-        Args:
-            friend_drones: List of friendly drones.
-            current_time: Current simulation time.
-        """
-        for friend in friend_drones:
-            if friend is self or friend.pos.distance_to(self.pos) > COMMUNICATION_RANGE:
-                continue
-                
-            # Share passive detections
-            if hasattr(friend, 'passive_detections'):
-                for direction_hash, (direction, timestamp) in friend.passive_detections.items():
-                    # Only accept relatively recent detections (less than 2 seconds old)
-                    if current_time - timestamp < 2000:
-                        # If we don't have this direction or ours is older, update
-                        if direction_hash not in self.direction_history or \
-                        timestamp > self.direction_history[direction_hash][1]:
-                            self.direction_history[direction_hash] = (direction, timestamp, id(friend))
-            
-            # Share already triangulated targets
-            if hasattr(friend, 'triangulated_targets'):
-                for target_id, (position, confidence, last_update) in friend.triangulated_targets.items():
-                    # Only accept recent triangulations with reasonable confidence
-                    if current_time - last_update < 3000 and confidence > 0.5:
-                        # If we don't have this target or ours is older, update
-                        if target_id not in self.triangulated_targets or \
-                        last_update > self.triangulated_targets[target_id][2]:
-                            self.triangulated_targets[target_id] = (position, confidence, last_update)
-
-    def _perform_triangulation(self, friend_drones: List[Any], current_time: int) -> None:
-        """
-        Attempt to triangulate enemy positions using collected direction data.
-        
-        Args:
-            friend_drones: List of friendly drones.
-            current_time: Current simulation time.
-        """
-        # Group detectors by position for each direction
-        direction_detectors = {}  # {direction_hash: [(detector_id, pos, direction, timestamp)]}
-        
-        for direction_hash, (direction, timestamp, detector_id) in self.direction_history.items():
-            # Find the detector position
-            detector_pos = None
-            if detector_id == id(self):
-                detector_pos = self.pos
-            else:
-                for friend in friend_drones:
-                    if id(friend) == detector_id:
-                        detector_pos = friend.pos
-                        break
-            
-            if detector_pos:
-                if direction_hash not in direction_detectors:
-                    direction_detectors[direction_hash] = []
-                direction_detectors[direction_hash].append((detector_id, detector_pos, direction, timestamp))
-        
-        # Group directions into potential targets
-        potential_targets = {}  # {target_id: [(detector_id, dir_hash, pos, direction, timestamp)]}
-        target_counter = 0
-        
-        # For each direction, check compatibility with other directions
-        for dir_hash1, detectors1 in direction_detectors.items():
-            for detector_id1, pos1, dir1, timestamp1 in detectors1:
-                # Check if already assigned to a target
-                already_assigned = False
-                for target_detectors in potential_targets.values():
-                    if any(did == detector_id1 and dhash == dir_hash1 
-                          for did, dhash, _, _, _ in target_detectors):
-                        already_assigned = True
-                        break
-                
-                if already_assigned:
-                    continue
-                
-                # Try to form a new group of compatible detections
-                compatible_detections = [(detector_id1, dir_hash1, pos1, dir1, timestamp1)]
-                
-                for dir_hash2, detectors2 in direction_detectors.items():
-                    if dir_hash1 == dir_hash2:
-                        continue
+                for i in range(1, steps + 1):
+                    # Calcula posição ao longo da linha
+                    pos = self.pos + direction * (i * CELL_SIZE)
+                    
+                    # Converte para célula
+                    cell = pos_to_cell(pos)
+                    
+                    # Verifica se está dentro dos limites da grade
+                    if 0 <= cell[0] < GRID_WIDTH and 0 <= cell[1] < GRID_HEIGHT:
+                        # Marca a célula
+                        self.passive_detection_matrix[cell] = 1
                         
-                    for detector_id2, pos2, dir2, timestamp2 in detectors2:
-                        # Don't include the same detector twice
-                        if detector_id2 == detector_id1:
-                            continue
-                            
-                        # Check compatibility
-                        if self._directions_compatible(pos1, dir1, pos2, dir2):
-                            compatible_detections.append((detector_id2, dir_hash2, pos2, dir2, timestamp2))
-                
-                # If we have at least 3 compatible detectors, create a new potential target
-                if len(compatible_detections) >= 3:
-                    # Ensure they are 3 distinct drones
-                    unique_detectors = set(did for did, _, _, _, _ in compatible_detections)
-                    if len(unique_detectors) >= 3:
-                        target_counter += 1
-                        potential_targets[target_counter] = compatible_detections
-        
-        # Triangulate positions for potential targets
-        for target_id, compatible_detections in potential_targets.items():
-            position_estimates = []
-            
-            # Triangulate with all possible pairs
-            for i in range(len(compatible_detections)):
-                for j in range(i+1, len(compatible_detections)):
-                    _, _, pos1, dir1, timestamp1 = compatible_detections[i]
-                    _, _, pos2, dir2, timestamp2 = compatible_detections[j]
-                    
-                    position = self._triangulate_position(pos1, dir1, pos2, dir2)
-                    
-                    if position:
-                        # Calculate confidence based on recency
-                        recency1 = max(0, 1 - (current_time - timestamp1) / 1000)
-                        recency2 = max(0, 1 - (current_time - timestamp2) / 1000)
-                        confidence = recency1 * recency2
-                        
-                        position_estimates.append((position, confidence))
-            
-            if position_estimates:
-                # Calculate weighted average of estimated positions
-                total_confidence = sum(conf for _, conf in position_estimates)
-                if total_confidence > 0:
-                    weighted_pos = pygame.math.Vector2(0, 0)
-                    for pos, conf in position_estimates:
-                        weighted_pos += pos * (conf / total_confidence)
-                    
-                    # Calculate global confidence based on number of detectors and average confidence
-                    unique_detectors = set(did for did, _, _, _, _ in compatible_detections)
-                    detector_factor = min(1.0, len(unique_detectors) / 5)  # Normalized up to 5 detectors
-                    
-                    overall_confidence = (total_confidence / len(position_estimates)) * detector_factor
-                    
-                    # Store the triangulated target
-                    stable_target_id = f"target_{hash(str(weighted_pos))}"
-                    self.triangulated_targets[stable_target_id] = (weighted_pos, overall_confidence, current_time)
+                        # Verifica se atingiu o limite de distância
+                        if i * CELL_SIZE >= detection_range:
+                            break
 
-    def _cleanup_old_data(self, current_time: int) -> None:
-        """
-        Remove outdated direction and target data.
-        
-        Args:
-            current_time: Current simulation time.
-        """
-        # Remove old directions from history
-        old_directions = [hash_key for hash_key, (_, timestamp, _) in self.direction_history.items() 
-                         if current_time - timestamp > 3000]  # 3 seconds
-        for hash_key in old_directions:
-            self.direction_history.pop(hash_key, None)
-        
-        # Remove old targets
-        old_targets = [tid for tid, (_, _, timestamp) in self.triangulated_targets.items() 
-                      if current_time - timestamp > 5000]  # 5 seconds
-        for tid in old_targets:
-            self.triangulated_targets.pop(tid, None)
-
-    def _update_matrices_with_triangulation(self, current_time: int) -> None:
-        """
-        Update detection matrices with triangulated target information.
-        
-        Args:
-            current_time: Current simulation time.
-        """
-        for target_id, (position, confidence, _) in self.triangulated_targets.items():
-            # Convert position to cell index
-            cell = pos_to_cell(position)
-            
-            # Update detection structures
-            if confidence > self.enemy_intensity[cell]:
-                # Store position in detection dictionary for future calculations
-                key = f"triangulated_{target_id}"
-                
-                # Calculate direction if we have history
-                direction = pygame.math.Vector2(0, 0)  # Default with no direction
-                
-                if hasattr(self, 'previous_triangulated') and target_id in self.previous_triangulated:
-                    prev_pos, _, _ = self.previous_triangulated[target_id]
-                    delta = position - prev_pos
-                    if delta.length() > 0:
-                        direction = delta.normalize()
-                
-                # Update matrices
-                self.enemy_intensity[cell] = 1 # confidence
-                self.enemy_direction[cell] = [direction.x, direction.y]
-                self.enemy_timestamp[cell] = current_time
-                
-                # Record for history
-                if key not in self.current_enemy_pos_detection:
-                    self.current_enemy_pos_detection[key] = position.copy()
-                else:
-                    # Already existed, update direction records
-                    self.aux_enemy_detections[key] = cell
-                    self.current_enemy_pos_detection[key] = position.copy()
-
-    def _directions_compatible(self, pos1, dir1, pos2, dir2, angle_threshold=0.2):
-        """
-        Check if two detection directions are compatible (might point to the same target).
-        
-        Args:
-            pos1, pos2: Detector drone positions.
-            dir1, dir2: Detection directions.
-            angle_threshold: Angle threshold (in radians) for considering compatibility.
-            
-        Returns:
-            bool: True if directions are potentially compatible.
-        """
-        # Calculate intersection point (may be approximate)
-        intersection = self._triangulate_position(pos1, dir1, pos2, dir2)
-        
-        if intersection is None:
-            return False
-            
-        # Check if the actual directions from both detectors to the intersection
-        # point are close to the detection directions
-        real_dir1 = (intersection - pos1)
-        real_dir2 = (intersection - pos2)
-        
-        if real_dir1.length() > 0 and real_dir2.length() > 0:
-            real_dir1 = real_dir1.normalize()
-            real_dir2 = real_dir2.normalize()
-            
-            angle1 = math.acos(max(-1, min(1, real_dir1.dot(dir1))))
-            angle2 = math.acos(max(-1, min(1, real_dir2.dot(dir2))))
-            
-            return angle1 < angle_threshold and angle2 < angle_threshold
-        
-        return False
-
-    def _triangulate_position(self, pos1, dir1, pos2, dir2):
-        """
-        Triangulate a position from two positions and directions.
-        Returns None if lines are nearly parallel.
-        
-        Args:
-            pos1, pos2: Positions of two detector drones.
-            dir1, dir2: Normalized directions pointing to the target.
-            
-        Returns:
-            pygame.math.Vector2: Estimated target position, or None if triangulation not possible.
-        """
-        # Represent the lines as:
-        # pos1 + t1 * dir1
-        # pos2 + t2 * dir2
-        
-        # Matrix to solve the linear system
-        A = np.array([
-            [dir1.x, -dir2.x],
-            [dir1.y, -dir2.y]
-        ])
-        
-        b = np.array([
-            pos2.x - pos1.x,
-            pos2.y - pos1.y
-        ])
-        
-        # Check if the system is well-conditioned
-        # (lines are not nearly parallel)
-        if abs(np.linalg.det(A)) < 0.1:  # Adjust threshold as needed
-            return None
-            
-        try:
-            # Solve the system to find t1 and t2
-            t1, t2 = np.linalg.solve(A, b)
-            
-            # If t1 < 0 or t2 < 0, the lines cross "backwards"
-            if t1 < 0 or t2 < 0:
-                return None
-                
-            # Calculate the intersection point
-            intersection1 = pygame.math.Vector2(pos1.x + dir1.x * t1, pos1.y + dir1.y * t1)
-            intersection2 = pygame.math.Vector2(pos2.x + dir2.x * t2, pos2.y + dir2.y * t2)
-            
-            # Should be the same point, but may have numerical differences
-            # Return the average as a robust measure
-            return pygame.math.Vector2((intersection1.x + intersection2.x) / 2, 
-                                      (intersection1.y + intersection2.y) / 2)
-            
-        except:
-            # If there are problems solving the system
-            return None
-                
     # -------------------------------------------------------------------------
     # Update Local Enemy Detection
     # -------------------------------------------------------------------------
@@ -787,17 +469,11 @@ class FriendDrone:
             neighbor.friend_direction
         )
         np.putmask(self.friend_timestamp, update_mask, neighbor.friend_timestamp)
-
+        
     # -------------------------------------------------------------------------
-    # Communication
+    # Update Neghbors
     # -------------------------------------------------------------------------
-    
-    def communication(self, all_drones: List[Any]) -> None:
-        """
-        Comunica-se apenas com os 3 drones amigos mais próximos (dentro de COMMUNICATION_RANGE),
-        e ainda inclui aqueles que te têm entre os 3 mais próximos deles, garantindo bilateralidade.
-        """
-        # 1) candidatos dentro do alcance físico
+    def update_neghbors(self, all_drones: List[Any]):
         candidates = [
             other for other in all_drones
             if other is not self
@@ -826,45 +502,26 @@ class FriendDrone:
         neighbors = set(nearest + reverse_neighbors)
         self.neighbors = neighbors
 
-        # 5) faz a fusão de matrizes só com esses vizinhos
+    # -------------------------------------------------------------------------
+    # Communication
+    # -------------------------------------------------------------------------
+    
+    def communication(self, all_drones: List[Any]) -> None:
         connections = 0
         messages = 0
-        for other in neighbors:
-            connections += 1
-            messages += 2
-            if FriendDrone.class_rng.random() > MESSAGE_LOSS_PROBABILITY:
-                self.merge_enemy_matrix(other)
-                self.merge_friend_matrix(other)
+        
+        for _ in range(CICLE_COMM_BY_STEP):
+            for other in self.neighbors:
+                connections += 1
+                messages += 2
+                if FriendDrone.class_rng.random() > MESSAGE_LOSS_PROBABILITY:
+                    self.merge_enemy_matrix(other)
+                    self.merge_friend_matrix(other)
 
         # 6) atualiza métricas
         self.active_connections = connections
         self.messages_sent_this_cycle = messages
 
-    # def communication(self, all_drones: List[Any]) -> None:
-    #     """
-    #     Simulate distributed communication by merging detection matrices
-    #     from nearby friend drones.
-        
-    #     Args:
-    #         all_drones: List of all friend drones.
-    #     """
-    #     messages_sent_this_cycle = 0
-    #     connections_this_cycle = 0
-        
-    #     for other in all_drones:
-    #         if other is not self and self.pos.distance_to(other.pos) < COMMUNICATION_RANGE:
-    #             connections_this_cycle += 1
-    #             messages_sent_this_cycle += 2
-                
-    #             # Simulate message loss with probability
-    #             if random.random() > MESSAGE_LOSS_PROBABILITY:
-    #                 self.merge_enemy_matrix(other)
-    #                 self.merge_friend_matrix(other)
-                    
-    #     # Track communication metrics
-    #     self.active_connections = connections_this_cycle
-    #     self.messages_sent_this_cycle = messages_sent_this_cycle
-                    
     # -------------------------------------------------------------------------
     # Apply Behavior Broken
     # -------------------------------------------------------------------------   
@@ -938,6 +595,7 @@ class FriendDrone:
         if self.return_to_base:
             # Head back to interest point center
             self.vel = (self.interest_point_center - self.pos).normalize() * FRIEND_SPEED
+            self.info = ("REGRESS", None, None, None)
         else:
             # Apply behavior-specific movement
             self.apply_behavior()
@@ -1003,8 +661,11 @@ class FriendDrone:
         # Apply exponential decay to detection matrices
         self.decay_matrices()
         
-        # No modo triangulação, sempre executar a detecção passiva
-        self.update_passive_detection_and_triangulate(enemy_drones, friend_drones)
+        # Atualiza vizinhos próximos
+        self.update_neghbors(friend_drones)
+        
+        if self.detection_mode == "triangulation":
+            self.update_passive_detection(enemy_drones)
         
         # A função update_local_enemy_detection verifica internamente o modo de detecção
         self.update_local_enemy_detection(enemy_drones)
@@ -1303,42 +964,6 @@ class FriendDrone:
             self.vel = pygame.math.Vector2(0, 0)
             
         self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
-                
-    def draw_passive_detection(self, surface: pygame.Surface) -> None:
-        """
-        Draw lines representing passive detection directions
-        and circles representing triangulated positions.
-        
-        Args:
-            surface: Surface to draw on.
-        """
-        if hasattr(self, 'passive_detections'):
-            # Draw direction lines for passive detections
-            for direction, _ in self.passive_detections.values():
-                # Calculate end point (extending the direction)
-                end_point = self.pos + direction * FRIEND_DETECTION_RANGE
-                draw_dashed_line(
-                    surface, 
-                    (255, 0, 0, 128), 
-                    self.pos, 
-                    end_point,
-                    width=1, 
-                    dash_length=5, 
-                    space_length=5
-                )
-        
-        if hasattr(self, 'last_triangulated'):
-            # Draw triangulated positions
-            for position, confidence in self.last_triangulated.values():
-                # Circle size based on confidence
-                radius = int(5 + confidence * 5)
-                pygame.draw.circle(
-                    surface, 
-                    (0, 255, 255, int(confidence * 200)),
-                    (int(position.x), int(position.y)), 
-                    radius, 
-                    1
-                )
 
     # -------------------------------------------------------------------------
     # Rendering: Draw the Drone
@@ -1450,8 +1075,19 @@ class FriendDrone:
         """
         # Draw passive detection information if in triangulation mode
         if self.detection_mode == "triangulation":
-            self.draw_passive_detection(surface)
-        
+            for direction in self.direction_vectors.values(): 
+                # Calculate end point (extending the direction)
+                end_point = self.pos + direction * FRIEND_DETECTION_RANGE
+                draw_dashed_line(
+                    surface, 
+                    (255, 0, 0, 64), 
+                    self.pos, 
+                    end_point,
+                    width=1, 
+                    dash_length=5, 
+                    space_length=5
+                )
+                
         # Draw state information
         font = pygame.font.SysFont(FONT_FAMILY, 10)
         if self.info and self.info[0]:

@@ -20,8 +20,8 @@ EPISODES: int = 2  # Number of episodes to run
 EPSILON: int = 2
 
 # -------- Drone Counts --------
-FRIEND_COUNT: int = 40 # 10
-ENEMY_COUNT: int = 40 # 10
+FRIEND_COUNT: int = 10 # 10
+ENEMY_COUNT: int = 1 # 10
 
 # -------- Aggressiveness and Escape Settings --------
 # 0: flee, 1: head towards the point of interest when detected
@@ -41,10 +41,11 @@ GRID_WIDTH: int = SIM_WIDTH // CELL_SIZE
 GRID_HEIGHT: int = SIM_HEIGHT // CELL_SIZE
 
 DECAY_FACTOR: float = 0.99 # Factor for exponential decay in detection matrices
-FRIEND_DETECTION_RANGE: int = 100 # 0 # 20 # 100 # Range (in pixels) for friend detection
+FRIEND_DETECTION_RANGE: int = 600 # 0 # 20 # 100 # Range (in pixels) for friend detection
 ENEMY_DETECTION_RANGE: int = 100 # Range (in pixels) for enemy detection
-COMMUNICATION_RANGE: int = 250 # 0 # 250  # Communication range between drones
-N_CONNECTIONS: int = 2 # Number of connections for each drone
+COMMUNICATION_RANGE: int = 2500 # 0 # 250  # Communication range between drones
+N_CONNECTIONS: int = 3 # Number of connections for each drone
+CICLE_COMM_BY_STEP: int = 3
 MESSAGE_LOSS_PROBABILITY: float = 0.1
 TARGET_INFLUENCE: float = 0.05
 BASE_SPEED: float = 2.0
@@ -68,11 +69,12 @@ NEUTRALIZATION_PROB_FRIEND_ALIVE = 0.5 # 0 # 0.5  # Probabilidade de o amigo sob
 NEUTRALIZATION_PROB_ENEMY_ALIVE = 0.2 # 0 # 0.2   # Probabilidade de o inimigo sobreviver (amigo removido)
 NEUTRALIZATION_PROB_BOTH_DEAD = 1 - (NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALIZATION_PROB_ENEMY_ALIVE)
 INITIAL_DISTANCE = INTERNAL_RADIUS * 1.4
-INITIAL_N_LAYERS: int = 2
+INITIAL_N_LAYERS: int = 1
 THRESHOLD_PROJECTION = INTERNAL_RADIUS * 0.5  # Máxima distância permitida entre o drone e sua projeção na reta do inimigo
 MIN_COMMUNICATION_HOLD: int = 2 # 2 # 0 # Minimum friend communication hold time
 HOLD_SPREAD: bool = True # True # False
-DETECTION_MODE: str = "direct" # "triangulation"  # "direct"
+DETECTION_MODE: str = "triangulation" # "triangulation"  # "direct"
+N_LINE_SIGHT_CROSSING: int = 3
 
 # -------- AEW --------
 AEW_COUNT: int = 0 # 0 # 5

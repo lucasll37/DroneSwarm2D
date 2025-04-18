@@ -197,7 +197,7 @@ def planning_policy(state, friend_activation_threshold_position: float = 0.7,
             
     if not enemy_targets:
         # Se nenhum alvo foi atribuído a self, mantém a posição.
-        friends_hold = [(cell, candidate_pos) for (cell, candidate_pos) in friend_candidates] # if 1.1 * INITIAL_DISTANCE - candidate_pos.distance_to(INTEREST_POINT_CENTER) > 0]
+        friends_hold = [(cell, candidate_pos) for (cell, candidate_pos) in friend_candidates]# if 1.1 * INITIAL_DISTANCE - candidate_pos.distance_to(INTEREST_POINT_CENTER) > 0]
         
         return hold_position(pos, friend_intensity, enemy_intensity, enemy_direction, friends_hold)
     

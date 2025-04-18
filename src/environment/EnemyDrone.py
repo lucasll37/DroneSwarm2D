@@ -147,7 +147,7 @@ class EnemyDrone:
             int: The unique drone ID.
         """
         current_id = self.__class__.enemy_id_counter
-        self.__class__.enemy_id_counter += 1
+        EnemyDrone.enemy_id_counter += 1
         return current_id
     
 
@@ -490,10 +490,12 @@ class EnemyDrone:
                     
         elif self.behavior_type == "debug":
             # Debug behavior: move directly toward target or remain fixed.
-            target_direction = target_vector.normalize()
-            self.vel = target_direction * ENEMY_SPEED if not self.fixed else pygame.math.Vector2(0, 0)
             self.pos = pygame.math.Vector2(0.3 * SIM_WIDTH, 0.5 * SIM_HEIGHT)
-            self.behavior_type = "direct"
+            self.fixed = True
+            # target_direction = target_vector.normalize()
+            # self.vel = target_direction * ENEMY_SPEED if not self.fixed else pygame.math.Vector2(0, 0)
+            
+            # self.behavior_type = "direct"
                 
         elif self.behavior_type == "u-debug":
             # U-debug behavior: move forward, then perpendicular, and finally reverse.
@@ -564,7 +566,7 @@ class EnemyDrone:
         
         # Optionally draw detection range as a dashed circle.
         if show_detection:
-            draw_dashed_circle(surface, (self.color[0], self.color[1], self.color[2], 32), (int(self.pos.x), int(self.pos.y)),
+            draw_dashed_circle(surface, (self.color[0], self.color[1], self.color[2], 64), (int(self.pos.x), int(self.pos.y)),
                                ENEMY_DETECTION_RANGE, dash_length=5, space_length=5, width=1)
         
         # Render the drone's ID with transparency.
