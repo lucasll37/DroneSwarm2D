@@ -214,6 +214,42 @@ class FriendDrone:
         """
         self.enemy_intensity *= DECAY_FACTOR
         self.friend_intensity *= DECAY_FACTOR
+        
+        
+    def _perform_direct_detection(self, enemy_drones: List[Any], detection_range: float, current_time: int) -> None:
+        """
+        Perform direct detection of enemy drones within detection range.
+        
+        Args:
+            enemy_drones: List of enemy drones.
+            detection_range: Maximum detection range in pixels.
+            current_time: Current simulation time.
+        """
+        for enemy in enemy_drones:
+            key: int = id(enemy)
+            if self.pos.distance_to(enemy.pos) >= detection_range:
+                self.current_enemy_pos_detection.pop(key, None)
+                self.aux_enemy_detections.pop(key, None)
+                continue
+            
+            cell: Tuple[int, int] = pos_to_cell(enemy.pos)
+            if key not in self.current_enemy_pos_detection:
+                self.current_enemy_pos_detection[key] = enemy.pos.copy()
+            else:
+                if key in self.current_enemy_pos_detection and key in self.aux_enemy_detections:
+                    prev_cell: Tuple[int, int] = self.aux_enemy_detections[key]
+                    if prev_cell != cell:
+                        # Zero out values in the previous cell
+                        self.enemy_intensity[prev_cell] = 0
+                        self.enemy_direction[prev_cell] = [0, 0]
+                        self.enemy_timestamp[prev_cell] = current_time
+                self.aux_enemy_detections[key] = cell
+                self.enemy_intensity[cell] = 1.0
+                delta: pygame.math.Vector2 = enemy.pos - self.current_enemy_pos_detection[key]
+                self.current_enemy_pos_detection[key] = enemy.pos.copy()
+                if delta.length() > 0:
+                    self.enemy_direction[cell] = list(delta.normalize())
+                self.enemy_timestamp[cell] = current_time
     
     # -------------------------------------------------------------------------
     # Detecção Passiva e Triangulação
@@ -317,41 +353,6 @@ class FriendDrone:
         # Apply broken detection behavior if drone is broken
         if self.broken:
             self.update_broken(x_min, x_max, y_min, y_max, distances, detection_range_cells)
-
-    def _perform_direct_detection(self, enemy_drones: List[Any], detection_range: float, current_time: int) -> None:
-        """
-        Perform direct detection of enemy drones within detection range.
-        
-        Args:
-            enemy_drones: List of enemy drones.
-            detection_range: Maximum detection range in pixels.
-            current_time: Current simulation time.
-        """
-        for enemy in enemy_drones:
-            key: int = id(enemy)
-            if self.pos.distance_to(enemy.pos) >= detection_range:
-                self.current_enemy_pos_detection.pop(key, None)
-                self.aux_enemy_detections.pop(key, None)
-                continue
-            
-            cell: Tuple[int, int] = pos_to_cell(enemy.pos)
-            if key not in self.current_enemy_pos_detection:
-                self.current_enemy_pos_detection[key] = enemy.pos.copy()
-            else:
-                if key in self.current_enemy_pos_detection and key in self.aux_enemy_detections:
-                    prev_cell: Tuple[int, int] = self.aux_enemy_detections[key]
-                    if prev_cell != cell:
-                        # Zero out values in the previous cell
-                        self.enemy_intensity[prev_cell] = 0
-                        self.enemy_direction[prev_cell] = [0, 0]
-                        self.enemy_timestamp[prev_cell] = current_time
-                self.aux_enemy_detections[key] = cell
-                self.enemy_intensity[cell] = 1.0
-                delta: pygame.math.Vector2 = enemy.pos - self.current_enemy_pos_detection[key]
-                self.current_enemy_pos_detection[key] = enemy.pos.copy()
-                if delta.length() > 0:
-                    self.enemy_direction[cell] = list(delta.normalize())
-                self.enemy_timestamp[cell] = current_time
 
     # -------------------------------------------------------------------------
     # Update Local Friend Detection
@@ -506,7 +507,6 @@ class FriendDrone:
     # -------------------------------------------------------------------------
     # Communication
     # -------------------------------------------------------------------------
-    
     def communication(self, all_drones: List[Any]) -> None:
         connections = 0
         messages = 0
@@ -522,6 +522,16 @@ class FriendDrone:
         # 6) atualiza métricas
         self.active_connections = connections
         self.messages_sent_this_cycle = messages
+        
+    
+    def broadcast_passive_detection(self, all_drones: List[Any]) -> None:
+
+        for _ in range(CICLE_COMM_BY_STEP):
+            for other in self.neighbors:
+                connections += 1
+                messages += 1
+                if FriendDrone.class_rng.random() > MESSAGE_LOSS_PROBABILITY and other != self:
+                    pass
 
     # -------------------------------------------------------------------------
     # Apply Behavior Broken
