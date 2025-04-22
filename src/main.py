@@ -1,3 +1,4 @@
+# type: ignore
 """
 run_air_traffic_env.py
 

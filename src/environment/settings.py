@@ -1,110 +1,77 @@
-from typing import Tuple
+# type: ignore
+import os
+import glob
+import json
 import pygame
 
-# Initialize pygame if not already initialized
+# — Initialize pygame to get display info —
 if not pygame.get_init():
     pygame.init()
+    
+# Encontre o primeiro .json em ./config e extraia seu nome (sem extensão)
+config_dir   = os.path.join(os.path.dirname(__file__), "../../config")
+json_paths   = sorted(glob.glob(os.path.join(config_dir, "*.json")))
 
-# -------- Global Display Configuration --------
-display_info: pygame.display.Info = pygame.display.Info()
-FULL_WIDTH: int = display_info.current_w
-FULL_HEIGHT: int = display_info.current_h
-screen = pygame.display.set_mode((FULL_WIDTH, FULL_HEIGHT), pygame.FULLSCREEN)
+if not json_paths:
+    raise FileNotFoundError(f"Nenhum arquivo .json encontrado em {config_dir!r}")
 
-# -------- Frame Rate Control --------
-clock: pygame.time.Clock = pygame.time.Clock()
-DT_STEP: int = 3/5  # Time step for simulation
+first_path   = json_paths[0]
+config_name  = os.path.splitext(os.path.basename(first_path))[0]
+print(f"Carregando config '{config_name}' de: {first_path}")
 
-# -------- Simulation Parameters --------
-EPISODES: int = 2  # Number of episodes to run
-EPSILON: int = 2
+# — 2. Leia o JSON desse arquivo —
+with open(first_path, "r", encoding="utf-8") as f:
+    raw = json.load(f)
 
-# -------- Drone Counts --------
-FRIEND_COUNT: int = 10 # 10
-ENEMY_COUNT: int = 10 # 10
+# — Override screen size with actual display info —
+display_info            = pygame.display.Info()
+raw["FULL_WIDTH"]       = display_info.current_w
+raw["FULL_HEIGHT"]      = display_info.current_h
 
-# -------- Aggressiveness and Escape Settings --------
-# 0: flee, 1: head towards the point of interest when detected
-INITIAL_AGGRESSIVENESS: float = 0.5 # 0.5 # 1
-ESCAPE_STEPS: int = 40  # Number of steps to escape
+# — Evaluate any string expressions or nested lists —
+cfg = {}
+for key, val in raw.items():
+    # case: simple expression in a string
+    if isinstance(val, str):
+        try:
+            cfg[key] = eval(val, {}, cfg)
+        except Exception:
+            cfg[key] = val
+    # case: list of values or expressions
+    elif isinstance(val, list):
+        lst = []
+        for item in val:
+            if isinstance(item, str):
+                try:
+                    lst.append(eval(item, {}, cfg))
+                except Exception:
+                    lst.append(item)
+            else:
+                lst.append(item)
+        cfg[key] = lst
+    # case: literal number, boolean, etc.
+    else:
+        cfg[key] = val
 
-# -------- Screen Layout --------
-# Left portion for simulation, right portion for graphs
-SIM_WIDTH: int = int(FULL_WIDTH * 0.7)  # 70% of screen width for simulation
-SIM_HEIGHT: int = FULL_HEIGHT
-GRAPH_WIDTH: int = FULL_WIDTH - SIM_WIDTH  # Remaining width for graphs
-GRAPH_HEIGHT: int = FULL_HEIGHT
+# — Create top-level variables exactly as in your original .py —
+globals().update(cfg)
 
-# -------- Grid and Simulation Parameters --------
-CELL_SIZE: int = 20
-GRID_WIDTH: int = SIM_WIDTH // CELL_SIZE
-GRID_HEIGHT: int = SIM_HEIGHT // CELL_SIZE
-
-DECAY_FACTOR: float = 0.99 # Factor for exponential decay in detection matrices
-FRIEND_DETECTION_RANGE: int = 250 # 0 # 20 # 100 # Range (in pixels) for friend detection
-ENEMY_DETECTION_RANGE: int = 100 # Range (in pixels) for enemy detection
-COMMUNICATION_RANGE: int = 250 # 0 # 250  # Communication range between drones
-N_CONNECTIONS: int = 3 # Number of connections for each drone
-CICLE_COMM_BY_STEP: int = 3
-MESSAGE_LOSS_PROBABILITY: float = 0.1
-TARGET_INFLUENCE: float = 0.05
-BASE_SPEED: float = 2.0
-ENEMY_SPEED: float = BASE_SPEED
-FRIEND_SPEED: float = 1 * BASE_SPEED # 1.1
-PLOT_THRESHOLD: float = 0.05
-
-# -------- Interest Point Constants --------
-INTEREST_POINT_CENTER = pygame.math.Vector2(SIM_WIDTH / 2, SIM_HEIGHT / 2) # debug apaga!
-CENTER = INTEREST_POINT_CENTER.copy()
-INTERNAL_RADIUS: int = min(SIM_WIDTH, SIM_HEIGHT) / 10
-EXTERNAL_RADIUS: int = INTERNAL_RADIUS * 4
-INTEREST_POINT_ATTACK_RANGE: int = EPSILON
-INTEREST_POINT_INITIAL_HEALTH: int = 100
-INTEREST_POINT_DAMAGE: int = INTEREST_POINT_INITIAL_HEALTH // ENEMY_COUNT
-
-
-# -------- Drone Constants --------
-NEUTRALIZATION_RANGE: int = 20  # Capture distance for neutralization
-NEUTRALIZATION_PROB_FRIEND_ALIVE = 0.5 # 0 # 0.5  # Probabilidade de o amigo sobreviver (inimigo removido)
-NEUTRALIZATION_PROB_ENEMY_ALIVE = 0.2 # 0 # 0.2   # Probabilidade de o inimigo sobreviver (amigo removido)
-NEUTRALIZATION_PROB_BOTH_DEAD = 1 - (NEUTRALIZATION_PROB_FRIEND_ALIVE + NEUTRALIZATION_PROB_ENEMY_ALIVE)
-INITIAL_DISTANCE = INTERNAL_RADIUS * 1.4
-INITIAL_N_LAYERS: int = 1
-THRESHOLD_PROJECTION = INTERNAL_RADIUS * 0.5  # Máxima distância permitida entre o drone e sua projeção na reta do inimigo
-MIN_COMMUNICATION_HOLD: int = 3 # 0 # 0 # Minimum friend communication hold time
-HOLD_SPREAD: bool = True # True # False
-DETECTION_MODE: str = "triangulation" # "triangulation"  # "direct"
-N_LINE_SIGHT_CROSSING: int = 3
-TRIANGULATION_GRANULARITY: int = 32
-
-# -------- AEW --------
-AEW_COUNT: int = 0 # 0 # 5
-AEW_RANGE: int = 350
-AEW_SPEED: float = FRIEND_SPEED
-AEW_DETECTION_RANGE: int = 200
-
-# -------- RADAR --------
-RADAR_COUNT = 0 # 0 # 1
-RADAR_RANGE = 0
-RADAR_DETECTION_RANGE = 350
-
-# -------- BROKEN --------
-BROKEN_COUNT = 0 # 0 # 1
-UPDATE_STATE_BROKEN = 100
-
-# DMZ
+# — Compute the derived constants exactly as in your original script —
+INTEREST_POINT_CENTER          = pygame.math.Vector2(SIM_WIDTH/2, SIM_HEIGHT/2)
+CENTER                          = INTEREST_POINT_CENTER.copy()
+TYPE_OF_SCENARIO               = config_name
 DMZ = [
-    (SIM_WIDTH * 0.35, SIM_HEIGHT * 0.30, 60),
-    (SIM_WIDTH * 0.65, SIM_HEIGHT * 0.35, 40),
-    (SIM_WIDTH * 0.55, SIM_HEIGHT * 0.75, 80)
+    (
+        float(eval(expr_x, globals())),    # avalia "SIM_WIDTH * 0.35"
+        float(eval(expr_y, globals())),    # avalia "SIM_HEIGHT * 0.30"
+        int(radius)                        # já é literal
+    )
+    for expr_x, expr_y, radius in DMZ
 ]
 
-
-# -------- Geographic Coordinates --------
-# Top-left corner (Longitude, Latitude)
-GEO_TOP_LEFT: Tuple[float, float] = (-74.0, 40.8)
-# Bottom-right corner (Longitude, Latitude)
-GEO_BOTTOM_RIGHT: Tuple[float, float] = (-73.9, 40.7)
-
-# -------- Font Setup --------
-FONT_FAMILY: str = "Courier New" # "Consolas"
+# — Finally, set up your display and clock —
+screen = pygame.display.set_mode(
+    (FULL_WIDTH, FULL_HEIGHT),
+    pygame.FULLSCREEN
+)
+clock = pygame.time.Clock()

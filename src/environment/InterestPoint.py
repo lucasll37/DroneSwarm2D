@@ -1,3 +1,4 @@
+# type: ignore
 """
 interest_point.py
 

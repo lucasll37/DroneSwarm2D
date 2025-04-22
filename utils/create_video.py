@@ -9,12 +9,19 @@ and creates a video (MP4 format) using imageio.
 # Imports
 # -----------------------------------------------------------------------------
 import os
+import shutil
 import imageio.v2 as imageio
 
 # -----------------------------------------------------------------------------
 # Configuration and Helper Functions
 # -----------------------------------------------------------------------------
-frames_dir = "tmp/frames_20250418_201944"  # Directory containing frame images
+dir = "./tmp"  # Directory containing frame images
+
+# extrai e imprime o nome da primeira pasta em frames_dir
+# (normaliza barras e então pega o primeiro elemento)
+folder = os.listdir(dir)[0]
+frames_dir = os.path.join(dir, folder)
+type_of_cenary = folder.split("-")[-1]
 
 def get_frame_number(filename: str) -> int:
     """
@@ -43,7 +50,7 @@ def main() -> None:
     filenames = sorted(filenames, key=get_frame_number)
     
     # Create a video writer.
-    video_filename = f"{frames_dir}_video.mp4"
+    video_filename = f"./video/{type_of_cenary}.mp4"
     writer = imageio.get_writer(video_filename, fps=30, codec="libx264")
     
     # Process each frame and add to the video.
@@ -58,6 +65,9 @@ def main() -> None:
 
     writer.close()
     print(f"Video saved as: {video_filename}")
+    
+    # — Remover a pasta de frames e todo o seu conteúdo —
+    shutil.rmtree(frames_dir)
 
 # -----------------------------------------------------------------------------
 # Entry Point

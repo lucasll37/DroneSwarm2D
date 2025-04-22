@@ -1,3 +1,4 @@
+# type: ignore
 """
 enemy_drone.py
 

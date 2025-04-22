@@ -1,3 +1,4 @@
+# type: ignore
 """
 run_simulation.py
 
@@ -25,129 +26,7 @@ if config_dir not in sys.path:
     
 # Project-specific imports
 from AirTrafficEnv import AirTrafficEnv
-from settings import (
-    FULL_WIDTH, FULL_HEIGHT, EPISODES,
-    FRIEND_COUNT, ENEMY_COUNT, AEW_COUNT, RADAR_COUNT, BROKEN_COUNT,
-    INITIAL_AGGRESSIVENESS, ESCAPE_STEPS,
-    SIM_WIDTH, SIM_HEIGHT, GRAPH_WIDTH, GRAPH_HEIGHT,
-    CELL_SIZE, GRID_WIDTH, GRID_HEIGHT,
-    DECAY_FACTOR, ENEMY_DETECTION_RANGE, FRIEND_DETECTION_RANGE,
-    COMMUNICATION_RANGE, MESSAGE_LOSS_PROBABILITY, TARGET_INFLUENCE,
-    DETECTION_MODE, FRIEND_SPEED, ENEMY_SPEED, AEW_SPEED,
-    PLOT_THRESHOLD, INTEREST_POINT_ATTACK_RANGE,
-    INTEREST_POINT_INITIAL_HEALTH, INTEREST_POINT_DAMAGE,
-    INTERNAL_RADIUS, EXTERNAL_RADIUS,
-    NEUTRALIZATION_RANGE, NEUTRALIZATION_PROB_FRIEND_ALIVE,
-    NEUTRALIZATION_PROB_ENEMY_ALIVE, NEUTRALIZATION_PROB_BOTH_DEAD,
-    INITIAL_DISTANCE, THRESHOLD_PROJECTION, MIN_COMMUNICATION_HOLD,
-    HOLD_SPREAD, AEW_RANGE, AEW_DETECTION_RANGE,
-    RADAR_RANGE, RADAR_DETECTION_RANGE,
-    UPDATE_STATE_BROKEN, GEO_TOP_LEFT, GEO_BOTTOM_RIGHT,
-    FONT_FAMILY, EPSILON, DT_STEP,
-    DMZ
-)
-
-# -----------------------------------------------------------------------------
-# Environment Variables Saving Function
-# -----------------------------------------------------------------------------
-def save_variables(save_folder: str) -> None:
-    """
-    Saves environment variables to a text file in the given folder.
-    
-    Args:
-        save_folder (str): The folder where the file "env_variables.txt" will be created.
-    """
-    txt_path = os.path.join(save_folder, "env_variables.txt")
-    variables_to_save = {
-        # Configurações de exibição
-        "FULL_WIDTH": FULL_WIDTH,
-        "FULL_HEIGHT": FULL_HEIGHT,
-        "EPISODES": EPISODES,
-        
-        # Contagens de drones
-        "FRIEND_COUNT": FRIEND_COUNT,
-        "ENEMY_COUNT": ENEMY_COUNT,
-        "AEW_COUNT": AEW_COUNT,
-        "RADAR_COUNT": RADAR_COUNT,
-        "BROKEN_COUNT": BROKEN_COUNT,
-        
-        # Configurações de comportamento
-        "INITIAL_AGGRESSIVENESS": INITIAL_AGGRESSIVENESS,
-        "ESCAPE_STEPS": ESCAPE_STEPS,
-        
-        # Dimensões de simulação
-        "SIM_WIDTH": SIM_WIDTH,
-        "SIM_HEIGHT": SIM_HEIGHT,
-        "GRAPH_WIDTH": GRAPH_WIDTH,
-        "GRAPH_HEIGHT": GRAPH_HEIGHT,
-        
-        # Configurações de grade
-        "CELL_SIZE": CELL_SIZE,
-        "GRID_WIDTH": GRID_WIDTH,
-        "GRID_HEIGHT": GRID_HEIGHT,
-        
-        # Parâmetros de detecção
-        "DECAY_FACTOR": DECAY_FACTOR,
-        "ENEMY_DETECTION_RANGE": ENEMY_DETECTION_RANGE,
-        "FRIEND_DETECTION_RANGE": FRIEND_DETECTION_RANGE,
-        "COMMUNICATION_RANGE": COMMUNICATION_RANGE,
-        "MESSAGE_LOSS_PROBABILITY": MESSAGE_LOSS_PROBABILITY,
-        "TARGET_INFLUENCE": TARGET_INFLUENCE,
-        "DETECTION_MODE": DETECTION_MODE,
-        
-        # Velocidades
-        "FRIEND_SPEED": FRIEND_SPEED,
-        "ENEMY_SPEED": ENEMY_SPEED,
-        "AEW_SPEED": AEW_SPEED,
-        
-        # Limites de visualização
-        "PLOT_THRESHOLD": PLOT_THRESHOLD,
-        
-        # Configurações de ponto de interesse
-        "INTEREST_POINT_ATTACK_RANGE": INTEREST_POINT_ATTACK_RANGE,
-        "INTEREST_POINT_INITIAL_HEALTH": INTEREST_POINT_INITIAL_HEALTH,
-        "INTEREST_POINT_DAMAGE": INTEREST_POINT_DAMAGE,
-        "INTERNAL_RADIUS": INTERNAL_RADIUS,
-        "EXTERNAL_RADIUS": EXTERNAL_RADIUS,
-        
-        # Configurações de neutralização
-        "NEUTRALIZATION_RANGE": NEUTRALIZATION_RANGE,
-        "NEUTRALIZATION_PROB_FRIEND_ALIVE": NEUTRALIZATION_PROB_FRIEND_ALIVE,
-        "NEUTRALIZATION_PROB_ENEMY_ALIVE": NEUTRALIZATION_PROB_ENEMY_ALIVE,
-        "NEUTRALIZATION_PROB_BOTH_DEAD": NEUTRALIZATION_PROB_BOTH_DEAD,
-        
-        # Configurações de posicionamento
-        "INITIAL_DISTANCE": INITIAL_DISTANCE,
-        "THRESHOLD_PROJECTION": THRESHOLD_PROJECTION,
-        "MIN_COMMUNICATION_HOLD": MIN_COMMUNICATION_HOLD,
-        "HOLD_SPREAD": HOLD_SPREAD,
-        
-        # Configurações AEW
-        "AEW_RANGE": AEW_RANGE,
-        "AEW_DETECTION_RANGE": AEW_DETECTION_RANGE,
-        
-        # Configurações RADAR
-        "RADAR_RANGE": RADAR_RANGE,
-        "RADAR_DETECTION_RANGE": RADAR_DETECTION_RANGE,
-        
-        # Configurações de drone quebrado
-        "UPDATE_STATE_BROKEN": UPDATE_STATE_BROKEN,
-        
-        # Coordenadas geográficas
-        "GEO_TOP_LEFT": GEO_TOP_LEFT,
-        "GEO_BOTTOM_RIGHT": GEO_BOTTOM_RIGHT,
-        
-        # Configurações de fonte
-        "FONT_FAMILY": FONT_FAMILY,
-        
-        # Constantes auxiliares
-        "EPSILON": EPSILON,
-        "DT_STEP": DT_STEP
-    }
-    with open(txt_path, "w") as f:
-        for var, value in variables_to_save.items():
-            f.write(f"{var} = {value}\n")
-    print(f"Environment variables saved in: {txt_path}")
+from settings import *
 
 # -----------------------------------------------------------------------------
 # Episode Result Persistence Function
@@ -179,22 +58,18 @@ def main() -> None:
     """
     # Record start time and create a timestamped save folder.
     start_time = datetime.datetime.now()
-    folder_timestamp = start_time.strftime("%Y_%m_%d_%Hh%Mm%Ss")
-    save_folder = os.path.join("data", folder_timestamp)
+    timestamp = start_time.strftime("%Y_%m_%d_%Hh%Mm%Ss")
+    save_folder = os.path.join("data", TYPE_OF_SCENARIO)
     os.makedirs(save_folder, exist_ok=True)
     
-    # Save the environment variables to a text file.
-    save_variables(save_folder)
-    
     # Define the CSV file path for saving episode results.
-    csv_path = os.path.join(save_folder, "results.csv")
+    csv_path = os.path.join(save_folder, F"results_{timestamp}.csv")
     
     # Create an instance of the Air Traffic Environment.
     env: AirTrafficEnv = AirTrafficEnv(mode=None, friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ, seed=42)
     
     # Run episodes and persist results.
-    for episode in range(1):
-    # for episode in range(EPISODES):
+    for episode in range(ANALYSIS_EPISODES):
         obs, done = env.reset()
         total_reward: float = 0.0
         

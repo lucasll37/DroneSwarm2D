@@ -1,3 +1,4 @@
+# type: ignore
 """
 simulation_env.py
 
@@ -7,7 +8,6 @@ for drawing UI elements, grids, heatmaps, dashed lines, target lines, and more.
 It also defines the Button class for user interactions and the AirTrafficEnv
 class which manages the simulation loop, rendering, and RL environment logic.
 """
-
 # -----------------------------------------------------------------------------
 # Environment Setup and Imports
 # -----------------------------------------------------------------------------
@@ -18,7 +18,6 @@ import sys
 import csv
 import random
 import math
-import threading
 import numpy as np
 import pygame
 
@@ -60,12 +59,14 @@ class Button:
     When clicked, the button toggles between its original color and a toggled color.
     When the mouse hovers over it, the color is darkened.
     """
-    def __init__(self, rect: Tuple[int, int, int, int], text: str, callback, toggled: Optional[bool] = None) -> None:
+    def __init__(self, rect: Tuple[int, int, int, int], text: str, callback,
+                 toggled: Optional[bool] = None, color: Optional[Tuple[int, int, int]] = (70, 70, 70)) -> None:
+        
         self.rect: pygame.Rect = pygame.Rect(rect)
         self.text: str = text
         self.callback = callback
-        self.original_color: Tuple[int, int, int] = (70, 70, 70)
-        self.toggled_color: Tuple[int, int, int] = (0, 100, 0)
+        self.original_color = color
+        self.toggled_color = (0, 100, 0)
         self.toggled: Optional[bool] = toggled
         self.font: pygame.font.Font = pygame.font.SysFont(FONT_FAMILY, 11)
 
@@ -190,14 +191,12 @@ def draw_friend_communication(surface: pygame.Surface,
 
 
 def draw_direction(surface: pygame.Surface, global_intensity: np.ndarray,
-                   global_direction: np.ndarray, threshold: float,
-                   show_arrows: bool = True) -> None:
+                   global_direction: np.ndarray, threshold: float) -> None:
     """
     Draws arrows on the surface to indicate the direction of detections for grid cells
     exceeding a certain intensity threshold.
     """
-    if not show_arrows:
-        return
+    
     for i in range(GRID_WIDTH):
         for j in range(GRID_HEIGHT):
             intensity = global_intensity[i, j]
@@ -287,13 +286,14 @@ class AirTrafficEnv:
         self.show_friend_detection_range: bool = True
         self.show_enemy_detection_range: bool = True
         self.show_dashed_lines: bool = True
-        self.show_arrows: bool = False
+        self.show_dmz: bool = True
         self.show_target_lines: bool = False
         self.show_friend_comm_range: bool = False
         self.show_trajectory: bool = True   
         self.show_debug = True
         self.return_to_base = False
-        self.export_to_tacview: bool = False     
+        self.export_to_tacview: bool = False 
+        self.use_triangulation: bool = False    
         self.frame_number = 0
         
         # Estatísticas para exibição
@@ -326,18 +326,19 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10, row1_y, button_width, button_height), "Tog. Graph", self.toggle_graph, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row1_y, button_width, button_height), "Pause", self.toggle_pause, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row1_y, button_width, button_height), "Reset", self.reset_simulation))
-        self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row1_y, button_width, button_height), "Exit", self.exit_env))
+        self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row1_y, button_width, button_height), "Exit", self.exit_env, color=(200, 0, 0)))
         self.buttons.append(Button((graph_x + 10, row2_y, button_width, button_height), "Tog. Friend Range", self.toggle_friend_range, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row2_y, button_width, button_height), "Tog. Enemy Range", self.toggle_enemy_range, toggled=True))
-        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Dashed", self.toggle_dashed, toggled=True))
-        # self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Arrows", self.toggle_arrows, toggled=False))
+        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. Friend Comm.", self.toggle_dashed, toggled=True))
+        self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row2_y, button_width, button_height), "Tog. DMZ", self.toggle_dmz, toggled=True))
         self.buttons.append(Button((graph_x + 10, row3_y, button_width, button_height), "Tog. Comm Range", self.toggle_comm_range, toggled=False))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row3_y, button_width, button_height), "Export Tacview", self.toggle_tacview_export, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Save Frames", self.toogle_save_frames, toggled=False))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Target Lines", self.toggle_target_lines, toggled=False))
         self.buttons.append(Button((graph_x + 10, row4_y, button_width, button_height), "Tog. Trajetory", self.toggle_trajetory, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=True))
-        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False))
+        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Triang.", self.toogle_triangulation, toggled=False))
+        self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False, color=(0, 0, 200)))
 
     def is_in_demilitarized_zone(self, position: pygame.math.Vector2) -> bool:
         """
@@ -381,8 +382,8 @@ class AirTrafficEnv:
     def toggle_dashed(self) -> None:
         self.show_dashed_lines = not self.show_dashed_lines
 
-    def toggle_arrows(self) -> None:
-        self.show_arrows = not self.show_arrows
+    def toggle_dmz(self) -> None:
+        self.show_dmz = not self.show_dmz
 
     def toggle_target_lines(self) -> None:
         """
@@ -407,6 +408,9 @@ class AirTrafficEnv:
         
     def toogle_return(self) -> None:
         self.return_to_base = not self.return_to_base
+        
+    def toogle_triangulation(self) -> None:
+        self.use_triangulation = not self.use_triangulation
 
     def handle_tacview(self) -> None:
         """
@@ -702,8 +706,7 @@ class AirTrafficEnv:
             for i, friend in enumerate(self.friend_drones):
                 for j, enemy in enumerate(self.enemy_drones):
                     
-                    if self.is_in_demilitarized_zone(enemy.pos):
-                        # Skip the enemy drone if it is in a demilitarized zone.
+                    if self.is_in_demilitarized_zone(enemy.pos) and self.show_dmz:
                         continue
                     
                     if friend.pos.distance_to(enemy.pos) <= NEUTRALIZATION_RANGE:
@@ -811,7 +814,7 @@ class AirTrafficEnv:
         """
         # Header
         header_font = pygame.font.SysFont(FONT_FAMILY, 16, bold=True)
-        header_text = f"Air Traffic Env - Episode: {episode:4d} | Step: {frame_count:4d} | Accumulated Reward: {accum_reward:8.2f}"
+        header_text = f"[{TYPE_OF_SCENARIO.upper()}] Air Traffic Env - Episode: {episode:4d} | Step: {frame_count:4d} | Accumulated Reward: {accum_reward:8.2f}"
         header_label = header_font.render(header_text, True, (0, 255, 0))
         surface.blit(header_label, (10, 40))
         
@@ -876,9 +879,12 @@ class AirTrafficEnv:
                     global_enemy_direction = np.where(np.expand_dims(drone.enemy_intensity, axis=2) > 0,
                                                     drone.enemy_direction, global_enemy_direction)
 
-                draw_triangulation(self.sim_surface, global_triangulation, "orange")
                 draw_heatmap(self.sim_surface, global_enemy_intensity, "orange")
-                draw_direction(self.sim_surface, global_enemy_intensity, global_enemy_direction, 0.1, show_arrows=self.show_arrows)
+                draw_direction(self.sim_surface, global_enemy_intensity, global_enemy_direction, 0.1)
+                
+                # Draw triangulation
+                if self.use_triangulation:
+                    draw_triangulation(self.sim_surface, global_triangulation, "orange")
             
             if self.show_dashed_lines:
                 draw_friend_communication(self.sim_surface, self.friend_drones, show_dashed=self.show_dashed_lines)
@@ -895,8 +901,9 @@ class AirTrafficEnv:
             self.interest_point.draw(self.sim_surface)
             
             # Draw demilitarized zones
-            for zone in self.demilitarized_zones:
-                zone.draw(self.sim_surface)
+            if self.show_dmz:
+                for zone in self.demilitarized_zones:
+                    zone.draw(self.sim_surface)
                 
             self.draw_header(self.sim_surface, self.episode, self.current_step, self.current_time, self.friend_drones, self.accum_reward)
             
@@ -928,7 +935,7 @@ class AirTrafficEnv:
             if self.save_frames:
                 if self.folder_name is None:
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    self.folder_name = f"./tmp/frames_{timestamp}"
+                    self.folder_name = f"./tmp/frames_{timestamp}-{TYPE_OF_SCENARIO}"
                     os.makedirs(self.folder_name, exist_ok=True)
                 filename = os.path.join(self.folder_name, f"frame_{self.frame_number}.png")
                 pygame.image.save(screen, filename)
