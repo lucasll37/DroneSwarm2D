@@ -7,13 +7,13 @@
 
 # TODO
 
-corrigir bugs TRIANGULAÇÃO
 
-no ennought comm
+- Escrever README
 
-Implementar anti-colisão (para responder pergunta de curioso)
+- implementar TRIANGULAÇÃO inplace
 
-Escrever README
+- Implementar anti-colisão (para responder pergunta de curioso)
+
 
 -------------------------------------------------------------
 RL

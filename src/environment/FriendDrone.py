@@ -133,6 +133,7 @@ class FriendDrone:
         
         # Triangulation matrices
         self.passive_detection_matrix = np.zeros((GRID_WIDTH * TRIANGULATION_GRANULARITY, GRID_HEIGHT * TRIANGULATION_GRANULARITY))
+        self.merged_passive_detection_matrix = None
         self.direction_vectors = {}
         
         # Detection matrices
@@ -298,7 +299,8 @@ class FriendDrone:
     # -------------------------------------------------------------------------
     # Update Local Enemy Detection
     # -------------------------------------------------------------------------
-    def update_local_enemy_detection(self, enemy_drones: List[Any]) -> None:
+    def update_local_enemy_detection(self, friend_drones: List[Any], enemy_drones: List[Any]) -> None:
+    # def update_local_enemy_detection(self, enemy_drones: List[Any]) -> None:
         """
         Update local detection of enemy drones based on the selected detection mode.
         
@@ -314,6 +316,50 @@ class FriendDrone:
         # Direct detection (only in "direct" mode)
         if self.detection_mode == "direct":
             self._perform_direct_detection(enemy_drones, detection_range, current_time)
+            
+        else: # DEBUG
+            for enemy in enemy_drones:
+                # DEBUG
+                i = 0
+                
+                for friend in friend_drones:
+                    detection_range = friend._get_detection_range()
+                    if friend.pos.distance_to(enemy.pos) <= detection_range:
+                        i += 1
+                        
+                    if i >= N_LINE_SIGHT_CROSSING:
+                        break
+                
+                if i < N_LINE_SIGHT_CROSSING:
+                    continue
+                # DEBUG
+                
+                self._perform_direct_detection(enemy_drones, detection_range, current_time)
+                
+                # key: int = id(enemy)
+                # if self.pos.distance_to(enemy.pos) >= detection_range:
+                #     self.current_enemy_pos_detection.pop(key, None)
+                #     self.aux_enemy_detections.pop(key, None)
+                #     continue
+                
+                # cell: Tuple[int, int] = pos_to_cell(enemy.pos)
+                # if key not in self.current_enemy_pos_detection:
+                #     self.current_enemy_pos_detection[key] = enemy.pos.copy()
+                # else:
+                #     if key in self.current_enemy_pos_detection and key in self.aux_enemy_detections:
+                #         prev_cell: Tuple[int, int] = self.aux_enemy_detections[key]
+                #         if prev_cell != cell:
+                #             # Zero out values in the previous cell
+                #             self.enemy_intensity[prev_cell] = 0
+                #             self.enemy_direction[prev_cell] = [0, 0]
+                #             self.enemy_timestamp[prev_cell] = current_time
+                #     self.aux_enemy_detections[key] = cell
+                #     self.enemy_intensity[cell] = 1.0
+                #     delta: pygame.math.Vector2 = enemy.pos - self.current_enemy_pos_detection[key]
+                #     self.current_enemy_pos_detection[key] = enemy.pos.copy()
+                #     if delta.length() > 0:
+                #         self.enemy_direction[cell] = list(delta.normalize())
+                #     self.enemy_timestamp[cell] = current_time
         
         # In "triangulation" mode, detection is already done in update_passive_detection_and_triangulate()
         # and results are directly stored in detection matrices
@@ -519,20 +565,25 @@ class FriendDrone:
                     self.merge_enemy_matrix(other)
                     self.merge_friend_matrix(other)
 
-        # 6) atualiza métricas
-        self.active_connections = connections
-        self.messages_sent_this_cycle = messages
+        self.active_connections += connections
+        self.messages_sent_this_cycle += messages
         
     
-    def broadcast_passive_detection(self, all_drones: List[Any]) -> None:
-
+    def broadcast_passive_detection(self) -> None:
+        connections = 0
+        messages = 0
+        
         for _ in range(CICLE_COMM_BY_STEP):
-            for other in self.neighbors:
+            for other in self.neighbors:                
                 connections += 1
                 messages += 1
+                
+                self.merged_passive_detection_matrix = self.passive_detection_matrix.copy()
                 if FriendDrone.class_rng.random() > MESSAGE_LOSS_PROBABILITY and other != self:
-                    pass
-
+                    self.merged_passive_detection_matrix += other.passive_detection_matrix
+                    
+        self.active_connections += connections
+        self.messages_sent_this_cycle += messages
     # -------------------------------------------------------------------------
     # Apply Behavior Broken
     # -------------------------------------------------------------------------   
@@ -667,6 +718,8 @@ class FriendDrone:
             return_to_base: If True, drone will return to the interest point center.
         """
         self.total_steps += 1
+        self.active_connections = 0
+        self.messages_sent_this_cycle = 0
         self.return_to_base = return_to_base
         
         self.detection_mode = "triangulation" if use_triangulation else "direct"
@@ -677,11 +730,13 @@ class FriendDrone:
         # Atualiza vizinhos próximos
         self.update_neghbors(friend_drones)
         
-        if self.detection_mode == "triangulation":
-            self.update_passive_detection(enemy_drones)
-        
+        # if self.detection_mode == "triangulation":
+        #     self.update_passive_detection(enemy_drones)
+        #     self.broadcast_passive_detection()
+            
         # A função update_local_enemy_detection verifica internamente o modo de detecção
-        self.update_local_enemy_detection(enemy_drones)
+        self.update_local_enemy_detection(friend_drones, enemy_drones)
+        # self.update_local_enemy_detection(enemy_drones)
         self.update_local_friend_detection(friend_drones)
         
         # Communicate with nearby drones
@@ -1096,7 +1151,7 @@ class FriendDrone:
                     (255, 0, 0, 128), 
                     self.pos, 
                     end_point,
-                    width=1, 
+                    width=2, 
                     dash_length=5, 
                     space_length=5
                 )

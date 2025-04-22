@@ -293,7 +293,7 @@ class AirTrafficEnv:
         self.show_debug = True
         self.return_to_base = False
         self.export_to_tacview: bool = False 
-        self.use_triangulation: bool = False    
+        self.use_triangulation: bool = True    
         self.frame_number = 0
         
         # Estatísticas para exibição
@@ -337,7 +337,7 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Target Lines", self.toggle_target_lines, toggled=False))
         self.buttons.append(Button((graph_x + 10, row4_y, button_width, button_height), "Tog. Trajetory", self.toggle_trajetory, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=True))
-        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Triang.", self.toogle_triangulation, toggled=False))
+        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Triang.", self.toogle_triangulation, toggled=True))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False))
 
     def is_in_demilitarized_zone(self, position: pygame.math.Vector2) -> bool:
@@ -883,8 +883,8 @@ class AirTrafficEnv:
                 draw_direction(self.sim_surface, global_enemy_intensity, global_enemy_direction, 0.1)
                 
                 # Draw triangulation
-                if self.use_triangulation:
-                    draw_triangulation(self.sim_surface, global_triangulation, "orange")
+                # if self.use_triangulation:
+                #     draw_triangulation(self.sim_surface, global_triangulation, "orange")
             
             if self.show_dashed_lines:
                 draw_friend_communication(self.sim_surface, self.friend_drones, show_dashed=self.show_dashed_lines)
