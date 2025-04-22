@@ -80,7 +80,6 @@ class FriendDrone:
             behavior_type: The behavior strategy ("planning", "AI", "AEW", "RADAR", "debug", "u-debug").
             fixed: If True, the drone remains stationary.
             broken: If True, the drone will provide faulty detection information.
-            detection_mode: Detection mode - "direct" or "triangulation"
         """
         if FriendDrone.class_seed is None:
             FriendDrone.set_class_seed()
@@ -96,7 +95,7 @@ class FriendDrone:
         self.trajectory: List[pygame.math.Vector2] = []
         self.return_to_base: bool = False
         self.info: Tuple[str, Any, Any, Any] = ("", None, None, None)
-        self.detection_mode = DETECTION_MODE
+        self.detection_mode = None
         self.neighbors = []
 
         # Drone properties
@@ -655,7 +654,7 @@ class FriendDrone:
     # -------------------------------------------------------------------------
     # Update Drone State
     # -------------------------------------------------------------------------
-    def update(self, enemy_drones: List[Any], friend_drones: List[Any], return_to_base: bool = False) -> None:
+    def update(self, enemy_drones: List[Any], friend_drones: List[Any], use_triangulation: bool, return_to_base: bool = False) -> None:
         """
         Update the drone's state for the current simulation step.
         
@@ -669,6 +668,8 @@ class FriendDrone:
         """
         self.total_steps += 1
         self.return_to_base = return_to_base
+        
+        self.detection_mode = "triangulation" if use_triangulation else "direct"
         
         # Apply exponential decay to detection matrices
         self.decay_matrices()
@@ -1092,7 +1093,7 @@ class FriendDrone:
                 end_point = self.pos + direction * FRIEND_DETECTION_RANGE
                 draw_dashed_line(
                     surface, 
-                    (255, 0, 0, 64), 
+                    (255, 0, 0, 128), 
                     self.pos, 
                     end_point,
                     width=1, 

@@ -338,7 +338,7 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10, row4_y, button_width, button_height), "Tog. Trajetory", self.toggle_trajetory, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=True))
         self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Triang.", self.toogle_triangulation, toggled=False))
-        self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False, color=(0, 0, 200)))
+        self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False))
 
     def is_in_demilitarized_zone(self, position: pygame.math.Vector2) -> bool:
         """
@@ -638,7 +638,7 @@ class AirTrafficEnv:
             
             self.current_time += timedelta(seconds=DT_STEP)
             for drone in self.friend_drones:
-                drone.update(self.enemy_drones, self.friend_drones, self.return_to_base)
+                drone.update(self.enemy_drones, self.friend_drones, self.use_triangulation, self.return_to_base)
                 
                 # Coletar estatísticas
                 self.messages_exchanged += getattr(drone, 'messages_sent_this_cycle', 0)
