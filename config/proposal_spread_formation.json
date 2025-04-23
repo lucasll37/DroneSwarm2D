@@ -5,6 +5,7 @@
 	"COMMUNICATION_RANGE": 250,
 	"RADAR_RANGE": 0,
 	"HOLD_SPREAD": true,
+	"ENEMY_BEHAVIOR": "formation",
 	
 	"FRIEND_COUNT": 40,
 	"ENEMY_COUNT": 40,

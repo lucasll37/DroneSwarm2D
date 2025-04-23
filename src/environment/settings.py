@@ -57,9 +57,10 @@ for key, val in raw.items():
 globals().update(cfg)
 
 # — Compute the derived constants exactly as in your original script —
-INTEREST_POINT_CENTER          = pygame.math.Vector2(SIM_WIDTH/2, SIM_HEIGHT/2)
-CENTER                          = INTEREST_POINT_CENTER.copy()
-TYPE_OF_SCENARIO               = config_name
+INTEREST_POINT_CENTER = pygame.math.Vector2(SIM_WIDTH/2, SIM_HEIGHT/2)
+CENTER = INTEREST_POINT_CENTER.copy()
+TYPE_OF_SCENARIO = config_name
+ENEMY_BEHAVIOR = None if ENEMY_BEHAVIOR == "None" else ENEMY_BEHAVIOR
 DMZ = [
     (
         float(eval(expr_x, globals())),    # avalia "SIM_WIDTH * 0.35"

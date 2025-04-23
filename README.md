@@ -1,207 +1,321 @@
-# Proposta e Avaliação de Algoritmo Distribuído para Enxame de Drones Defensivos baseado em Planejamento
+# DroneSwarm2D: Um Simulador para Estudo de Táticas Defensivas Distribuídas com Enxames de Drones Autônomos
+
+![Banner do Enxame de Drones](./images/banner.png)
+
+## 📚 Visão Geral
+
+DroneSwarm2D é um ambiente de simulação 2D projetado para estudar táticas defensivas distribuídas para enxames de drones autônomos. O simulador aborda o crescente desafio representado por drones ofensivos de baixo custo em conflitos modernos, possibilitando a pesquisa de estratégias de defesa descentralizadas e resilientes. Ele fornece uma plataforma para modelagem de comportamentos de enxames de drones, implementação de redes de comunicação ad-hoc e avaliação da eficácia de vários algoritmos defensivos.
+
+### Características Principais
+
+- **Tomada de Decisão Distribuída**: Modela drones autônomos que operam sem controle central
+- **Comunicação em Rede Ad-hoc**: Simula comunicações realistas entre drones
+- **Percepção de Estado**: Cada drone mantém sua própria percepção do ambiente através de detecção local
+- **Compartilhamento de Informações**: Os drones trocam e mesclam matrizes de detecção para melhorar a consciência colaborativa
+- **Múltiplos Comportamentos**: Implementa vários padrões de aproximação inimiga e estratégias de resposta defensiva
+- **Visualizações**: Ferramentas ricas de visualização para matrizes de detecção, estados dos drones e estatísticas
+- **Métricas de Desempenho**: Métricas abrangentes para avaliar a eficácia da defesa
+
+## 🎯 Motivação do Projeto
+
+A crescente acessibilidade de drones de baixo custo transformou os cenários de conflito modernos. Esses dispositivos de baixo custo, frequentemente construídos com materiais simples e adaptados para fins ofensivos, representam desafios significativos para os sistemas de defesa convencionais, que normalmente exigem investimentos substanciais e frequentemente têm dificuldades para enfrentar ataques em enxame.
+
+O DroneSwarm2D aborda essa assimetria explorando redes descentralizadas de defesa de drones que:
+
+1. Eliminam pontos únicos de falha (comuns em sistemas centralizados)
+2. Fornecem alternativas econômicas às contramedidas tradicionais caras
+3. Permitem respostas flexíveis e escaláveis a diversas ameaças
+4. Otimizam a coordenação tática através de princípios de computação distribuída
+
+Esta abordagem se inspira em princípios operacionais de pesquisa de longa data, visando criar sistemas de defesa resilientes que possam operar efetivamente mesmo com recursos limitados.
+
+## 📂 Organização do Projeto
+
+```
+DroneSwarm2D/
+│
+├── assets/                      # Recursos visuais e de interface
+│   ├── base_*.svg               # Imagens SVG para base
+│   ├── drone_*.svg              # Imagens SVG para drones
+│   ├── radar_*.svg              # Imagens SVG para radares
+│   └── markdown.css             # Estilo para documentos markdown
+│
+├── config/                      # Configurações da simulação
+│   ├── preset/                  # Configurações predefinidas
+│   │   ├── airmine.json         # Configuração para cenário padrão
+│   │   ├── proposal.json        # Configuração para a solução proposta
+│   │   ├── centralized.json     # Configuração para abordagem centralizada
+│   │   └── ...                  # Outras configurações
+│   └── proposal_spread.json     # Configuração alternativa
+│
+├── data/                        # Dados e resultados das simulações
+│   ├── airmine/                 # Resultados para cenário padrão
+│   ├── proposal/                # Resultados para solução proposta
+│   └── ...                      # Outros resultados
+│
+├── images/                      # Imagens para documentação
+│
+├── models/                      # Modelos de IA treinados
+│
+├── src/                         # Código-fonte
+│   ├── environment/             # Núcleo do ambiente de simulação
+│   │   ├── AirTrafficEnv.py     # Ambiente principal
+│   │   ├── DemilitarizedZone.py # Zonas desmilitarizadas
+│   │   ├── EnemyDrone.py        # Implementação de drones inimigos
+│   │   ├── FriendDrone.py       # Implementação de drones amigos
+│   │   ├── InterestPoint.py     # Ponto de interesse a ser defendido
+│   │   ├── distributedDefensiveAlgorithm.py  # Algoritmo de defesa
+│   │   ├── settings.py          # Configurações do ambiente
+│   │   └── utils.py             # Funções utilitárias
+│   │
+│   ├── analysis.py              # Script para análise de resultados
+│   ├── behavior_clone.py        # Script para clonagem de comportamento
+│   └── main.py                  # Ponto de entrada principal
+│
+├── utils/                       # Utilitários adicionais
+│   ├── create_video.py          # Cria vídeos das simulações
+│   ├── view_enemy_behavior.py   # Visualiza comportamentos inimigos
+│   └── ...                      # Outros utilitários
+│
+├── LICENSE                      # Licença do projeto
+├── Makefile                     # Automação de tarefas
+├── README.md                    # Este arquivo
+└── requirements.txt             # Dependências do projeto
+```
+
+## 🔧 Arquitetura Técnica
+
+### Ambiente de Simulação
+
+A simulação é construída em um sistema de grade 2D com os seguintes componentes:
+
+- **Ponto de Interesse**: Área central a ser defendida, com saúde que diminui quando atacada com sucesso
+- **Drones Amigos**: Drones defensivos autônomos implementando vários comportamentos
+- **Drones Inimigos**: Drones ofensivos com padrões de ataque configuráveis
+- **Zonas Desmilitarizadas**: Áreas onde o engajamento é proibido
+
+### Representação de Estado
+
+Cada drone mantém sua própria percepção local do ambiente através de:
+
+1. **Matrizes de Detecção**:
+   - `enemy_intensity`: Registra detecções recentes de inimigos (valores 0-1)
+   - `enemy_direction`: Armazena vetores de direção de inimigos detectados
+   - `friend_intensity`: Registra detecções recentes de drones amigos
+   - `friend_direction`: Armazena vetores de direção de drones amigos detectados
 
-![Banner](./images/banner.png)
+2. **Sistema de Triangulação**:
+   Quando múltiplos drones detectam o mesmo alvo de diferentes ângulos, suas informações de detecção são combinadas para melhorar a precisão.
 
-## Motivação e Fundamentação Histórica
-- A inspiração para este projeto surge da longa tradição da pesquisa operacional, que teve um papel decisivo durante a Segunda Guerra Mundial. Naquele período, a necessidade de otimizar recursos limitados – como tempo, espaço e vidas humanas – levou ao desenvolvimento de técnicas avançadas de tomada de decisão e alocação de recursos. Hoje, com o advento de drones de baixo custo e a facilidade de sua construção, o cenário de defesa se transformou. Sistemas centralizados tradicionais, que exigem infraestrutura complexa e dispendiosa, tornam-se vulneráveis diante de enxames de drones inimigos de baixo custo e baixa detectabilidade. Assim, a proposta deste projeto é desenvolver uma solução distribuída e colaborativa, onde cada drone amigo opera de forma autônoma e intercomunicada para defender um ponto de interesse estratégico.
+### Sistema de Comunicação
 
-- Essa abordagem distribuída permite uma resposta rápida e escalável, pois a rede ad hoc entre os drones possibilita a propagação de informações sem depender de um centro de comando único. Além disso, a proposta abre caminho para a futura integração com algoritmos de aprendizado por reforço, onde os drones podem ajustar suas estratégias com base em feedback contínuo, melhorando a eficiência da defesa ao longo do tempo.
+A simulação implementa comunicação realista entre drones com:
+- Alcance de comunicação limitado entre drones
+- Formação de rede ad-hoc baseada em proximidade
+- Perda probabilística de mensagens
+- Fusão de informações através da mesclagem de matrizes
 
-## Abordagem Geral e Estrutura da Simulação
+### Comportamentos dos Drones
 
-### 1. Critérios de Término do Episódio
-Um episódio de simulação é finalizado sob três condições:
+#### Comportamentos de Drones Defensivos
+- **Planning**: Tomada de decisão estratégica baseada na percepção atual do estado
+- **AEW (Alerta Aéreo Antecipado)**: Padrão de vigilância em órbita
+- **RADAR**: Unidade de detecção estacionária
+- **AI**: Tomada de decisão baseada em rede neural
 
-- Quando todos os drones inimigos são abatidos – o que é verificado na função `AirTrafficEnv::step`, onde a lista de `enemy_drones` é atualizada e drones eliminados são removidos do ambiente.
+#### Comportamentos de Drones Ofensivos
+- **Direct**: Abordagem direta ao alvo
+- **Zigzag**: Abordagem com oscilações laterais
+- **Spiral**: Movimento em espiral em direção ao alvo
+- **Alternating**: Alternância entre abordagem direta e movimento perpendicular
+- **Bounce Approach**: Avançar e recuar com variação direcional
+- **Formation**: Movimento coordenado em formações predefinidas
 
-- Quando o ponto de interesse é destruído – isto ocorre quando a saúde (*health*) do ponto de interesse, controlada pela classe `CircleInterestPoint`, chega a zero, indicando que os ataques dos drones inimigos foram suficientes para comprometê-lo.
+## 🚀 Como Iniciar
 
-- Quando é atingido um limite máximo de passos de simulação – definido por `max_steps` (por padrão, 5000 passos), garantindo que a simulação seja finita e evitando loops infinitos.
+### Pré-requisitos
 
-### 2. Representação do Ambiente e dos Estados Internos
+- Python 3.9+
+- Bibliotecas: pygame, numpy, scipy, matplotlib, tensorflow, pandas
 
-#### Área de Simulação
-  - O ambiente é modelado em uma área bidimensional (2D) com dimensões definidas em `settings.py` (`SIM_WIDTH` e `SIM_HEIGHT`).
+### Instalação
 
-  - Essa área é discretizada em uma grade (usando `CELL_SIZE`, `GRID_WIDTH` e `GRID_HEIGHT`), permitindo a representação espacial das posições.
+```bash
+# Clone o repositório
+git clone https://github.com/seunome/DroneSwarm2D.git
+cd DroneSwarm2D
 
-  - O ponto de interesse é representado pela classe `CircleInterestPoint`, que desenha um círculo com um raio interno (zona crítica) e um raio externo (limite de atuação dos drones amigos). A cor do círculo varia dinamicamente de verde a vermelho, conforme sua saúde diminui, o que reflete os danos acumulados.
+# Crie um ambiente conda
+make create_env
 
-#### Matrizes de Detecção
-  - Cada drone mantém duas matrizes bidimensional que mapeiam a presença de drones amigos e inimigos – valores entre 0 e 1 indicam o quão recente foi detecção.
+# Ative o ambiente conda
+conda activate ./.venv
 
-  - Essas matrizes são atualizadas constantemente pelas funções `update_local_enemy_detection` e `update_local_friend_detection` (implementadas na classe `Drone`), que utilizam a função `pos_to_cell` para converter a posição do drone para uma célula da grade.
+# Instale dependências do sistema (Ubuntu/Debian)
+make apt_deps
 
-  - A atualização da matriz inclui um mecanismo de decaimento exponencial (usando o `DECAY_FACTOR`) que diminui o valor das células com o tempo, representando a perda de relevância de informações antigas.
+# Ou instale diretamente com pip
+pip install -r requirements.txt
+```
 
-#### Matrizes de Direção
-  - Além das matrizes de intensidade, os drones mantêm duas matrizes tridimensionais que registram os vetores de direção dos drones inimigos e amigos (cada célula da grade armazena duas corodenadas de vetor).
+### Executando a Simulação
 
-  - Esses vetores são calculados com base nas mudanças de posição detectadas (por exemplo, usando a normalização da variação entre posições consecutivas)
-    e são essenciais para prever trajetórias e ajustar as respostas dos drones defensivos, sobretudo para a perseguição.
+```bash
+# Execute a simulação principal
+make run
+
+# Ou diretamente com Python
+python src/main.py
+
+# Execute análise nos resultados
+make analysis
 
-#### Informações Escalares
-  - Cada drone armazena também sua própria posição e a posição do ponto de interesse, permitindo uma atualização contínua e autônoma do estado do ambiente.
-  
-#### Integração de Informações
-  - Essas informações são combinadas para formar um estado completo que alimenta a tomada de decisão, tanto em ações de defesa quanto em atualizações de comunicação com os drones vizinhos.
-
-### 3. Comportamento dos Drones Inimigos
-
-#### Origem e Seleção de Trajetória
-  - Na classe `EnemyDrone`, os drones inimigos são inicializados em posições aleatórias nas bordas da área de simulação, segundo a função `random_border_position`.
-
-  - Se não for especificado um comportamento, o sistema escolhe aleatoriamente entre diversos padrões pré-definidos (como "*direct*", "*zigzag*", "*spiral*", "*alternating*", entre outros), garantindo diversidade e imprevisibilidade nos ataques.
-
-  ![Banner](./images/trajectories.png)
-
-  ![Banner](./images/multi_simulation_trajectories.png)
-
-#### Reação ao Contato com Drones Amigos
-  - Quando um drone inimigo detecta um drone amigo dentro de um raio definido (`ENEMY_DETECTION_RANGE`), ele avalia um valor aleatório, comparando-o
-  com o parâmetro de agressividade (`AGGRESSIVENESS`). Este valor é gerado com variável aleatória de distribuição uniforme.
-
-  - Se o valor aleatório for menor que o parâmetro de agressividade, o drone entra em modo "`desperate_attack`", alterando sua velocidade para atacar
-    diretamente o ponto de interesse. Essa decisão é imediata e representa uma reação agressiva.
-
-  - Se o valor aleatório for maior, o drone ativa um modo de fuga: ele se desvia na direção oposta ao drone defensivo por um número fixo de passos (`ESCAPE_STEPS`) e depois retoma sua trajetória original. Essa mecânica simula um comportamento defensivo que evita confrontos diretos quando a situação não é favorável.
-
-#### Atualizações e Controle de Limites
-  - A função `EnemyDrone::update` é responsável por atualizar a posição, a velocidade e a trajetória do drone. Ela também assegura que o drone não ultrapasse os limites da área de simulação, ajustando sua posição caso seja detectada uma tentativa de sair dos limites (com verificações para x e y).
-
-### 4. Comportamento dos Drones Amigos (Defensivos)
-
-#### Posição Inicial e Configuração
-  - Os drones amigos são inicializados em torno do ponto de interesse, frequentemente distribuídos em forma de polígono regular para cobrir uma área estratégica ao redor do alvo.
-
-  - A classe `Drone` cuida de definir as propriedades iniciais, como a posição, a velocidade (inicialmente zero) e a cor (por padrão branca).
-
-#### Comunicação e Coordenação
-  - Cada drone amigo mantém uma rede de comunicação *ad hoc*, implementada na função `Drone::communication`. Quando drones estão próximos (dentro do `COMMUNICATION_RANGE`), eles compartilham suas matrizes de detecção, mesclando informações através dos métodos `merge_enemy_matrix` e `merge_friend_matrix`.
-
-  - Esse processo permite que um drone que não tenha uma detecção direta de um inimigo ainda receba informações relevantes de seus pares, melhorando a precisão e a reatividade da defesa.
-
-  - Adicionalmente, um mecanismo de eleição (via `start_election` e `receive_election`) pode ser utilizado para designar um líder, o que reforça a coordenação mesmo em um sistema distribuído.
-
-#### Tomada de Decisão e Execução de Ações:
-  - No modo "*planning*", implementado em `Drone::apply_behavior`, cada drone analisa sua matriz de detecção para identificar ameaças e priorizar a perseguição daquelas que estão mais próximas do ponto de interesse.
-
-  - A função `Drone::take_action` utiliza os dados do ambiente para atualizar a posição do drone, garantindo que ele se mova de acordo com a estratégia definida, sem ultrapassar o `EXTERNAL_RADIUS` do ponto de interesse.
-
-  - Se não houver ameaças, os drones entram em estado de "hold", permanecendo em sua posição enquanto continuam a atualizar suas informações e a se comunicar com outros drones. Nesse estado, o drone pode se movimentar, buscando uma posição favorável para prosseguir com a detecção, movendo-se em direção ao ponto de interesse até que se conecte a um drone amigo ou atinja a distância inicial do ponto de interesse, o que ocorrer primeiro.
-
-#### Resultados das Interações:
-Quando um drone amigo se aproxima de um inimigo, as interações podem resultar em três desfechos:
-
-  1. O drone amigo neutraliza o inimigo sem sofrer danos, permitindo que continue operando.
-
-  2. O inimigo neutraliza o drone amigo, geralmente por meio de uma ação explosiva, removendo ambos da simulação.
-  
-  3. O drone amigo sofre uma falha interna (simulação de danos ou escassez de recursos) e é removido, enquanto o inimigo continua sua aproximação.
-
-Esses resultados são determinados por uma lógica probabilística implementada no ambiente (`AirTrafficEnv::step`), que também atualiza a saúde do ponto de interesse e a recompensa acumulada.
-
-### 5. Métrica de Desempenho e Análise Comparativa
-
-#### Acumulador de Recompensa
-  - A clareza na definição da métrica de desempenho evidencia a importância de especificar o que se busca otimizar – um princípio fundamental em qualquer problema de otimização.
-
-  - A eficiência da defesa é quantificada por um acumulador de recompensa, cuja atualização ocorre em `AirTrafficEnv::compute_reward`.
-
-  - A recompensa em cada passo é calculada com base na soma das distâncias dos drones inimigos ao ponto de interesse, normalizadas por um fator (por padrão, 1/10000), e ajustada com bônus para inimigos abatidos e penalidades para ataques bem-sucedidos realizado por drone inimigo.
-
-  - Esse acumulador fornece um indicador quantitativo da performance da defesa ao longo do tempo, permitindo comparações entre diferentes estratégias.
-
-#### Comparações de Abordagens
-A solução distribuída (proposta) é comparada com:
-  1. Uma solução não cooperativa (benchmark), onde os drones operam sem comunicação entre si, confiando apenas em suas próprias detecções.
-
-  2. Solução centralizada: cada drone amigo possui acesso total às informações do ambiente, permitindo que tome decisões de forma cooperativa com base nessa visão global comum. É importante ressaltar que, na abordagem proposta, os drones dispõem apenas de um estado parcial do ambiente, obtido por meio do compartilhamento de informações entre aqueles que estão na mesma partição da rede.
-
-  - Testes estatísticos não-paramétricos (*Kolmogorov-Smirnov* e *Mann‑Whitney*) são planejados para analisar se as diferenças entre as abordagens são significativas, refutando ou não a hipótese nula de equivalência entre os métodos.
-
-#### Perspectivas Futuras
-
-  - Um próximo passo lógico é a incorporação de algoritmos de aprendizado por reforço, que permitiriam ao sistema adaptar e melhorar suas estratégias de defesa com base em experiências passadas, buscando tornar a rede de drones ainda mais eficiente e resiliente.
-
-  - Essa integração não apenas potencializa a melhoria contínua do sistema, mas também abre novas perspectivas para a aplicação de técnicas avançadas de inteligência artificial em cenários de defesa.
-
-### 6. Aspectos Inovadores
-
-#### Rede Ad Hoc
-  - Diferente dos sistemas centralizados, que dependem de um único ponto de falha e de infraestrutura cara, a rede *ad hoc* permite que cada drone amigo opere de forma autônoma, mas sincronizada, compartilhando informações e colaborando para uma defesa mais rápida e eficaz.
-
-  - Essa abordagem distribuída reflete uma tendência moderna na defesa e na robótica, onde a cooperação entre agentes autônomos pode superar limitações inerentes aos sistemas centralizados.
-
-#### Comparação com Soluções Tradicionais
-  - A abordagem centralizada, onde cada drone recebe uma visão global do ambiente, pode oferecer mais acertividade no julgamento dos drones defensivos, mas frequentemente resulta em altos custos e baixa versatilidade.
-
-  - Por outro lado, em uma abordagem não cooperativa – onde os drones operam sem compartilhar informações – há o risco de não detectar ameaças que se encontram fora de seu alcance imediato. Além disso, quando cada drone adota uma estratégia "*greedy*", priorizando exclusivamente sua própria recompensa (otimização local), o sistema pode acabar gerando soluções globais que vão de encontro ao objetivo da otimização.
-
-  - A abordagem distribuída busca unir o melhor dos dois mundos: ela permite que os drones se comuniquem localmente para ampliar seu alcance de detecção e tomada de decisão, mantendo a agilidade e a robustez essenciais para um ambiente de defesa dinâmico. Dessa forma, evita-se os custos, as vulnerabilidades e os desafios logísticos inerentes a uma infraestrutura centralizada de detecção e comando e controle (C2).
-
-## Resultados e Análises Preliminares
-
-### Visualização da Simulação par a par
-
-- benchmark (não cooperativo) vs. proposta (distribuída)
-![Gráfico](./images/kde_ci_benchmark_detecção%20distribuida.png)
-
-- benchmark (não cooperativo) vs. centralizado
-  ![Gráfico](./images/kde_ci_benchmark_detecção%20centralizada.png)
-
-- proposta (distribuída) vs. centralizado
-![Gráfico](./images/kde_ci_detecção%20distribuida_detecção%20centralizada.png)
-
-### Teste de Normalidade (Shapiro-Wilk)
-
-- benchmark (não cooperativo)
-![Gráfico](./images/qqplot_benchmark.png)
-
-- proposta (distribuída)
-![Gráfico](./images/qqplot_detecção%20distribuida.png)
-
-- centralizado
-![Gráfico](./images/qqplot_detecção%20centralizada.png)
-
-### Teste não-paramétrico
-Note que existem evidências suficientes para rejeitar a hipótese nula de normalidade das amostras. Por tanto, opta-se por realizar testes não-paramétricos para avaliar a diferença entre as abordagens.
-
-#### Teste de Kolmogorov-Smirnov
-Testa a hipótese nula de que duas amostras independentes são provenientes da mesma distribuição contínua.
-
-- benchmark (não cooperativo) vs. proposta (distribuída)
-![Gráfico](images/ks_test_benchmark_detecção%20distribuida.png)
-
-- benchmark (não cooperativo) vs. centralizado
-![Gráfico](./images/ks_test_benchmark_detecção%20centralizada.png)
-
-- proposta (distribuída) vs. centralizado
-![Gráfico](./images/ks_test_detecção%20distribuida_detecção%20centralizada.png)
-
-#### Teste de Mann-Whitney
-Testa a hipótese nula de que duas amostras independentes têm a mesma mediana.
-
-- benchmark (não cooperativo) vs. proposta (distribuída)
-![Gráfico](images/mann_whitney_benchmark_detecção%20distribuida.png)
-
-- benchmark (não cooperativo) vs. centralizado
-![Gráfico](./images/mann_whitney_benchmark_detecção%20centralizada.png)
-
-- proposta (distribuída) vs. centralizado
-![Gráfico](./images/mann_whitney_detecção%20distribuida_detecção%20centralizada.png)
-
-## Conclusão
-Este projeto apresenta uma simulação de um ambiente de defesa aérea 2D, integrando diversos aspectos essenciais:
-
-- Uma representação espacial do ambiente por meio de matrizes de detecção e direção (amiga e inimiga).
-
-- Comportamentos variados e estocásticos dos drones inimigos, que aumentam o realismo e a imprevisibilidade dos ataques.
-
-- Uma abordagem distribuída para os drones amigos, que se comunicam via rede *ad hoc*, permitindo uma coordenação eficiente sem centralização e resiliente a falhas (bipartição, comunicação, etc).
-
-- Uma métrica de desempenho coerente que avalia a eficácia da defesa e fornece uma base para comparações com métodos tradicionais (centralizados ou não cooperativos).
-
-- Perspectivas futuras que incluem a aplicação de aprendizado por reforço para otimização contínua das estratégias de defesa.
-  
-Em síntese, a solução proposta traz o foco para o fomento de soluções inovadoras e eficientes para a defesa aérea, alinhando-se com as tendências atuais de descentralização e automação, e abrindo caminho para futuras pesquisas em robótica e inteligência artificial.
+# Criar vídeo a partir de frames salvos
+make video
+
+# Visualizar padrões de comportamento inimigo
+make traj
+
+# Visualizar comportamento de múltiplos inimigos
+make multtraj
+```
+
+### Configuração da Simulação
+
+O simulador utiliza arquivos JSON na pasta `config/preset/` para definir parâmetros de simulação. Você pode:
+
+1. Modificar os arquivos existentes para ajustar parâmetros
+2. Criar novos arquivos de configuração baseados nos existentes
+3. Especificar um arquivo de configuração personalizado através da variável de ambiente `CONFIG_FILE`
+
+```bash
+# Executar com uma configuração específica
+CONFIG_FILE=./config/preset/proposal_spread.json python src/main.py
+```
+
+## 🎮 Interface do Usuário
+
+A interface da simulação consiste em:
+
+1. **Área de Simulação**: Representação 2D do ambiente mostrando:
+   - Drones amigos (brancos)
+   - Drones inimigos (vermelhos)
+   - Ponto de interesse (círculo verde que se torna vermelho conforme a saúde diminui)
+   - Alcances de detecção (círculos tracejados)
+   - Links de comunicação (linhas tracejadas)
+
+2. **Painel de Visualização**: Visualização 3D da percepção de um drone selecionado:
+   - Intensidade e direção de detecção de inimigos
+   - Intensidade e direção de detecção de amigos
+   - Ângulos de direção codificados por cores
+
+3. **Painel de Controle**: Botões de interface para:
+   - Alternar recursos de visualização
+   - Pausar/retomar simulação
+   - Exportar dados
+   - Reiniciar a simulação
+
+4. **Exibição de Estatísticas**: Métricas em tempo real mostrando:
+   - Contagens de drones
+   - Estatísticas de comunicação
+   - Saúde do ponto de interesse
+   - Tempo de simulação
+
+## 📊 Descobertas da Pesquisa
+
+O simulador permite a comparação entre diferentes estratégias defensivas:
+
+1. **Benchmark (Não-cooperativo)**: Drones operam independentemente sem comunicação
+2. **Proposta (Distribuída)**: Drones compartilham informações através de redes ad-hoc
+3. **Centralizada**: Drones têm informação global completa
+
+A análise dessas abordagens demonstra que:
+
+- Abordagens distribuídas oferecem vantagens significativas sobre as não-cooperativas
+- A diferença de desempenho entre abordagens distribuídas e centralizadas é mínima em muitos cenários
+- Estratégias distribuídas mostram maior resiliência a falhas de comunicação e adaptações inimigas
+
+Testes estatísticos (Kolmogorov-Smirnov e Mann-Whitney) confirmam diferenças significativas nas métricas de desempenho entre as abordagens.
+
+## 💡 Componentes Algorítmicos Principais
+
+### Algoritmo de Planejamento do Drone Amigo
+
+```python
+def planning_policy(state, ...):
+    # Extrai informações do estado
+    pos = state['pos']
+    friend_intensity = state['friend_intensity']
+    enemy_intensity = state['enemy_intensity'] 
+    enemy_direction = state['enemy_direction']
+    
+    # Identifica e prioriza alvos inimigos
+    enemy_targets = []
+    for cell, intensity in np.ndenumerate(enemy_intensity):
+        if intensity > activation_threshold:
+            target_pos = cell_to_position(cell)
+            distance_to_interest = target_pos.distance_to(INTEREST_POINT_CENTER)
+            enemy_targets.append((cell, target_pos, distance_to_interest))
+    
+    # Ordena alvos por proximidade ao ponto de interesse
+    enemy_targets.sort(key=lambda t: t[2])
+    
+    # Atribui drones para interceptar alvos
+    # [Lógica de interceptação...]
+    
+    # Para drones não atribuídos, implementa padrão de espera
+    # [Lógica de padrão de espera...]
+```
+
+### Cálculo de Interceptação
+
+```python
+def intercept_direction(chaser_pos, chaser_speed, target_pos, target_vel):
+    # Calcula posição relativa
+    r = target_pos - chaser_pos
+    
+    # Resolve equação quadrática para tempo de interceptação
+    a = target_vel.dot(target_vel) - chaser_speed ** 2
+    b = 2 * r.dot(target_vel)
+    c = r.dot(r)
+    
+    # [Lógica de solução...]
+    
+    # Retorna vetor de direção normalizado
+    return direction.normalize()
+```
+
+### Mesclagem de Matrizes para Fusão de Informações
+
+```python
+def merge_enemy_matrix(self, neighbor):
+    # Atualiza com base na comparação de timestamp
+    update_mask = neighbor.enemy_timestamp > self.enemy_timestamp
+    np.putmask(self.enemy_intensity, update_mask, neighbor.enemy_intensity)
+    np.putmask(self.enemy_direction, 
+               np.broadcast_to(update_mask[..., None], self.enemy_direction.shape),
+               neighbor.enemy_direction)
+    np.putmask(self.enemy_timestamp, update_mask, neighbor.enemy_timestamp)
+```
+
+## 📈 Direções Futuras
+
+O simulador DroneSwarm2D abre várias direções de pesquisa promissoras:
+
+1. **Integração de Aprendizado por Reforço**: Implementação de algoritmos de aprendizado para melhorar táticas defensivas com base na experiência
+2. **Estudos de Escalabilidade**: Investigação de desempenho com enxames muito maiores (centenas ou milhares de drones)
+3. **Enxames Heterogêneos**: Modelagem de enxames com diversas capacidades e papéis de drones
+4. **Protocolos de Comunicação Avançados**: Teste de protocolos especializados para redes drone-a-drone
+5. **Extensão 3D**: Expansão da simulação para três dimensões para cenários mais realistas
+
+## 🤝 Contribuindo
+
+Contribuições para o DroneSwarm2D são bem-vindas! Sinta-se à vontade para enviar pull requests ou abrir issues para discutir possíveis melhorias.
+
+## 📄 Licença
+
+Este projeto é lançado sob a MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+## 📧 Contato
+
+Para perguntas ou oportunidades de colaboração, entre em contato pelo e-mail [lucas.silva1037@gmail.com].

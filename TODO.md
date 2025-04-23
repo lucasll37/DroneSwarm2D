@@ -7,8 +7,7 @@
 
 # TODO
 
-
-- Escrever README
+- Ajustar reward
 
 - implementar TRIANGULAÇÃO inplace
 

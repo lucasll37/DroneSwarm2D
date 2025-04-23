@@ -42,7 +42,7 @@ def main() -> None:
     are printed at each step.
     """
     # Create an instance of the AirTrafficEnv.
-    env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ, seed=None)
+    env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=ENEMY_BEHAVIOR, demilitarized_zones=DMZ, seed=None)
     
     episodes: int = 5  # Set number of episodes to run
     
