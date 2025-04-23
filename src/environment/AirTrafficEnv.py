@@ -337,7 +337,7 @@ class AirTrafficEnv:
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row3_y, button_width, button_height), "Tog. Target Lines", self.toggle_target_lines, toggled=False))
         self.buttons.append(Button((graph_x + 10, row4_y, button_width, button_height), "Tog. Trajetory", self.toggle_trajetory, toggled=True))
         self.buttons.append(Button((graph_x + 10 + (button_width + button_spacing), row4_y, button_width, button_height), "Tog. Debug", self.toggle_debug, toggled=True))
-        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Triang.", self.toogle_triangulation, toggled=True))
+        self.buttons.append(Button((graph_x + 10 + 2*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. D. Passive.", self.toogle_triangulation, toggled=True))
         self.buttons.append(Button((graph_x + 10 + 3*(button_width + button_spacing), row4_y, button_width, button_height), "Tog. Return", self.toogle_return, toggled=False))
 
     def is_in_demilitarized_zone(self, position: pygame.math.Vector2) -> bool:

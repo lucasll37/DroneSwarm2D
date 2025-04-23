@@ -1149,7 +1149,7 @@ class FriendDrone:
                     (255, 0, 0, 128), 
                     self.pos, 
                     end_point,
-                    width=2, 
+                    width=1, 
                     dash_length=5, 
                     space_length=5
                 )
