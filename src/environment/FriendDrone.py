@@ -245,7 +245,7 @@ class FriendDrone:
                         self.enemy_direction[prev_cell] = [0, 0]
                         self.enemy_timestamp[prev_cell] = current_time
                 self.aux_enemy_detections[key] = cell
-                self.enemy_intensity[cell] = 1.0
+                self.enemy_intensity[cell] = 1.0 # IndexError: index 54 is out of bounds for axis 1 with size 54
                 delta: pygame.math.Vector2 = enemy.pos - self.current_enemy_pos_detection[key]
                 self.current_enemy_pos_detection[key] = enemy.pos.copy()
                 if delta.length() > 0:
