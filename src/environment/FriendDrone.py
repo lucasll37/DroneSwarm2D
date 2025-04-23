@@ -334,32 +334,30 @@ class FriendDrone:
                     continue
                 # DEBUG
                 
-                self._perform_direct_detection(enemy_drones, detection_range, current_time)
+                key: int = id(enemy)
+                if self.pos.distance_to(enemy.pos) >= detection_range:
+                    self.current_enemy_pos_detection.pop(key, None)
+                    self.aux_enemy_detections.pop(key, None)
+                    continue
                 
-                # key: int = id(enemy)
-                # if self.pos.distance_to(enemy.pos) >= detection_range:
-                #     self.current_enemy_pos_detection.pop(key, None)
-                #     self.aux_enemy_detections.pop(key, None)
-                #     continue
-                
-                # cell: Tuple[int, int] = pos_to_cell(enemy.pos)
-                # if key not in self.current_enemy_pos_detection:
-                #     self.current_enemy_pos_detection[key] = enemy.pos.copy()
-                # else:
-                #     if key in self.current_enemy_pos_detection and key in self.aux_enemy_detections:
-                #         prev_cell: Tuple[int, int] = self.aux_enemy_detections[key]
-                #         if prev_cell != cell:
-                #             # Zero out values in the previous cell
-                #             self.enemy_intensity[prev_cell] = 0
-                #             self.enemy_direction[prev_cell] = [0, 0]
-                #             self.enemy_timestamp[prev_cell] = current_time
-                #     self.aux_enemy_detections[key] = cell
-                #     self.enemy_intensity[cell] = 1.0
-                #     delta: pygame.math.Vector2 = enemy.pos - self.current_enemy_pos_detection[key]
-                #     self.current_enemy_pos_detection[key] = enemy.pos.copy()
-                #     if delta.length() > 0:
-                #         self.enemy_direction[cell] = list(delta.normalize())
-                #     self.enemy_timestamp[cell] = current_time
+                cell: Tuple[int, int] = pos_to_cell(enemy.pos)
+                if key not in self.current_enemy_pos_detection:
+                    self.current_enemy_pos_detection[key] = enemy.pos.copy()
+                else:
+                    if key in self.current_enemy_pos_detection and key in self.aux_enemy_detections:
+                        prev_cell: Tuple[int, int] = self.aux_enemy_detections[key]
+                        if prev_cell != cell:
+                            # Zero out values in the previous cell
+                            self.enemy_intensity[prev_cell] = 0
+                            self.enemy_direction[prev_cell] = [0, 0]
+                            self.enemy_timestamp[prev_cell] = current_time
+                    self.aux_enemy_detections[key] = cell
+                    self.enemy_intensity[cell] = 1.0
+                    delta: pygame.math.Vector2 = enemy.pos - self.current_enemy_pos_detection[key]
+                    self.current_enemy_pos_detection[key] = enemy.pos.copy()
+                    if delta.length() > 0:
+                        self.enemy_direction[cell] = list(delta.normalize())
+                    self.enemy_timestamp[cell] = current_time
         
         # In "triangulation" mode, detection is already done in update_passive_detection_and_triangulate()
         # and results are directly stored in detection matrices
@@ -730,8 +728,8 @@ class FriendDrone:
         # Atualiza vizinhos próximos
         self.update_neghbors(friend_drones)
         
-        # if self.detection_mode == "triangulation":
-        #     self.update_passive_detection(enemy_drones)
+        if self.detection_mode == "triangulation":
+            self.update_passive_detection(enemy_drones)
         #     self.broadcast_passive_detection()
             
         # A função update_local_enemy_detection verifica internamente o modo de detecção

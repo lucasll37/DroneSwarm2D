@@ -18,4 +18,11 @@
 RL
 
 Behaviorclone do spread e RL
+
+Algortimos:
+- QMIX (Q-Mixing Network)
+- COMA (Counterfactual Multi-Agent Policy Gradients)
+- MAPPO (Multi-Agent Proximal Policy Optimization)
+- VDN (Value Decomposition Networks)
+- MAT (Multi-Agent Transformer)
 -------------------------------------------------------------
