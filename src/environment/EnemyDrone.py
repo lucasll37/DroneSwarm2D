@@ -201,6 +201,8 @@ class EnemyDrone:
             self.pos.y = SIM_HEIGHT
             self.vel.y = -abs(self.vel.y)
             
+        if len(self.trajectory) > 300:
+            self.trajectory.pop(0)
         self.trajectory.append(self.pos.copy())
 
     # -----------------------------------------------------------------------------

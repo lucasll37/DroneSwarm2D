@@ -11,6 +11,7 @@ of each episode to a CSV file using pandas.
 # Imports and Configuration
 # -----------------------------------------------------------------------------
 import os
+import gc
 import sys
 import random
 import pygame
@@ -115,8 +116,11 @@ def main() -> None:
         print(f"\tInterest Point Health: {interest_point_health}")
         print(f"\tTotal Distance Traveled: {total_distance:.2f} px")
         print("\tState Percentages:")
+        
         for state, percentage in state_percentages.items():
             print(f"\t\t{state}: {percentage:.2f}%")
+            
+        gc.collect()
         
     print("-" * 50)
         

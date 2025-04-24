@@ -272,8 +272,10 @@ class AirTrafficEnv:
         self.sim_surface = surface.convert_alpha()
         
         self.sim_surface.fill((0, 0, 0))
-        self.fig: Figure = Figure(figsize=(GRAPH_WIDTH / 100, GRAPH_HEIGHT / 100), dpi=100)
-        self.canvas: FigureCanvas = FigureCanvas(self.fig)
+        # self.fig: Figure = Figure(figsize=(GRAPH_WIDTH / 100, GRAPH_HEIGHT / 100), dpi=100)
+        # self.canvas: FigureCanvas = FigureCanvas(self.fig)
+        self.fig: Optional[Figure] = None
+        self.canvas: Optional[FigureCanvas] = None
         self.accum_reward: float = 0.0
         self.attack_penalty: int = 0
         self.sucessful_attacks: int = 0
@@ -456,6 +458,13 @@ class AirTrafficEnv:
         """
         Resets the environment by initializing drones and the interest point in random positions.
         """
+        
+        if hasattr(self, 'fig') and self.fig is not None:
+            plt.close(self.fig)
+        
+        self.fig = Figure(figsize=(GRAPH_WIDTH / 100, GRAPH_HEIGHT / 100), dpi=100)
+        self.canvas = FigureCanvas(self.fig)
+        
         self.simulation_start_time = datetime.utcnow()
         self.current_time = datetime.utcnow()
         self.episode += 1
@@ -468,6 +477,9 @@ class AirTrafficEnv:
         self.tacview_logs = {}
         self.friend_drones = []
         self.enemy_drones = []
+        
+        FriendDrone.friend_id_counter = 0
+        EnemyDrone.enemy_id_counter = 0
         
         # Create an interest point (a circle at the simulation center)
         center = CENTER

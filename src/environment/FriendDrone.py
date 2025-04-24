@@ -751,6 +751,8 @@ class FriendDrone:
         self.last_position = self.pos.copy()
         
         # Record trajectory for visualization
+        if len(self.trajectory) > 300:
+            self.trajectory.pop(0)
         self.trajectory.append(self.pos.copy())
         
         # Update state history
