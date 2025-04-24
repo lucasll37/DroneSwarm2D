@@ -68,10 +68,6 @@ def main() -> None:
             state_percentages = info['state_percentages']
             total_distance = info['total_distance_traveled']
             
-        state_data = {}
-        for state, percentage in state_percentages.items():
-            state_data[f"state_{state.replace(' ', '_')}"] = percentage
-
         print("-" * 50)
         print(f"FINAL: Air Traffic Env Episode {episode+1:3d}\n")
         print(f"\tSteps: {n_steps:4d}")

@@ -88,11 +88,6 @@ def main() -> None:
         state_percentages = info['state_percentages']
         total_distance = info['total_distance_traveled']
 
-        # Converter o dicionário de percentuais de estados para colunas individuais
-        state_data = {}
-        for state, percentage in state_percentages.items():
-            state_data[f"state_{state.replace(' ', '_')}"] = percentage
-
         result = {
             "episode": episode,
             "steps": n_steps,
@@ -103,6 +98,9 @@ def main() -> None:
             "interest_point_health": interest_point_health,
             "total_distance_traveled": total_distance
         }
+        
+        for state, percentage in state_percentages.items():
+            result[f"state_{state.replace(' ', '_')}"] = percentage
 
         # Persist the episode result immediately.
         persist_episode_result(result, csv_path)

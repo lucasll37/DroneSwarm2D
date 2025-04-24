@@ -7,17 +7,29 @@
 
 # TODO
 
-- Ajustar reward
+- Cenários:
+1) airmine
+2) centralizada
+3) proposta
+4) proposta com aew
+
+
 
 - implementar TRIANGULAÇÃO inplace
-
 - Implementar anti-colisão (para responder pergunta de curioso)
-
-
 -------------------------------------------------------------
 RL
 
+- Cenários:
+4) proposta com aew e spread determinístico
+5) proposta com aew e spread estocástico
+6) proposta com aew e spread RL (Algoritmo 1)
+6) proposta com aew e spread RL (Algoritmo 2)
+6) proposta com aew e spread RL (Algoritmo 3)
+6) proposta com aew e spread RL (Algoritmo 4)
+
 Behaviorclone do spread e RL
+- Velocidade Variável ()
 
 Algortimos:
 - QMIX (Q-Mixing Network)

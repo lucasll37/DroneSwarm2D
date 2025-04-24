@@ -1,0 +1,2 @@
+episode,steps,accumulated_reward,enemies_shotdown,friends_shotdown,sucessful_attacks,interest_point_health,total_distance_traveled,state_HOLD_-_NO_ENOUGH_COMM,state_HOLD,state_GO_HOLD_INTCPT,state_HOLD_INTCPT,state_PURSUING
+0,1029,19484.912944546377,40,25,1,98,3108.0000000000036,1.1532231940395206,87.8198898607062,2.57207644962747,2.1120829284094587,6.342727567217364
