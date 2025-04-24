@@ -8,7 +8,7 @@ import pygame
 from utils import pos_to_cell, intercept_direction, can_intercept, load_best_model
 from settings import *
 
-model = load_best_model(directory='./models', pattern=r"val_loss=([\d.]+)\.keras")
+# model = load_best_model(directory='./models', pattern=r"val_loss=([\d.]+)\.keras")
 
 # -------------------------------------------------------------------------
 # Planning Policy (Class Method)
