@@ -14,6 +14,7 @@
 4) proposta com aew
 
 
+- friends_hold = [(cell, candidate_pos) for (cell, candidate_pos) in friend_candidates] # if 1.1 * INITIAL_DISTANCE - candidate_pos.distance_to(INTEREST_POINT_CENTER) > 0] ????
 
 - implementar TRIANGULAÇÃO inplace
 - Implementar anti-colisão (para responder pergunta de curioso)

@@ -31,7 +31,10 @@ from utils import (
     generate_sparse_matrix, 
     draw_dashed_line
 )
-from distributedDefensiveAlgorithm import planning_policy
+
+from planningAlgorithm import planning_policy
+from RLAlgorithm import RL_policy
+
 
 # -----------------------------------------------------------------------------
 # FriendDrone Class Definition
@@ -773,98 +776,6 @@ class FriendDrone:
             percentages[state] = (count / self.total_steps) * 100
                 
         return percentages
-    
-    # -------------------------------------------------------------------------
-    # Artificial Intelligence Policy (Class Method)
-    # -------------------------------------------------------------------------
-    @classmethod
-    def ai_policy(cls, state, activation_threshold_position: float = 0.2):
-        """
-        AI policy for determining drone movement based on perceived state.
-        
-        Process detection matrices and calculate which enemy target to pursue
-        based on proximity and other factors.
-        
-        Args:
-            state: Dictionary containing pos, friend_intensity, enemy_intensity,
-                  friend_direction, and enemy_direction.
-            activation_threshold_position: Minimum intensity to consider a cell active.
-        
-        Returns:
-            tuple: (info, direction) where info is a string description and
-                  direction is a normalized movement vector.
-        """
-        
-        def hold_position(pos, friend_intensity) -> Tuple[str, pygame.math.Vector2]:
-            """
-            Fallback behavior when no enemy targets are detected.
-            Uses the AI model to predict movement direction.
-            
-            Returns:
-                tuple: (info string, direction vector)
-            """
-            if cls.model is None:
-                cls.model = load_best_model(directory='./models', pattern=r"val_loss=([\d.]+)\.keras")
-                
-            direction = np.squeeze(cls.model.predict(state))
-            direction = pygame.math.Vector2(direction[0], direction[1]).normalize()
-            info = "Return prediction from AI model."
-            
-            return info, direction
-            
-        # Extract state components
-        pos = np.squeeze(state['pos'])
-        pos = pygame.math.Vector2(pos[0], pos[1])
-        friend_intensity = np.squeeze(state['friend_intensity'])
-        enemy_intensity = np.squeeze(state['enemy_intensity'])
-        friend_direction = np.squeeze(state['friend_direction'])
-        enemy_direction = np.squeeze(state['enemy_direction'])
-        
-        enemy_targets = []
-
-        # Identify enemy targets with sufficient intensity
-        for cell, intensity in np.ndenumerate(enemy_intensity):
-            if intensity < activation_threshold_position:
-                continue
-            target_pos = pygame.math.Vector2((cell[0] + 0.5) * CELL_SIZE, (cell[1] + 0.5) * CELL_SIZE)
-            distance_to_interest = target_pos.distance_to(INTEREST_POINT_CENTER)
-            enemy_targets.append((cell, target_pos, distance_to_interest))
-        
-        if not enemy_targets:
-            return hold_position(pos, friend_intensity)
-        
-        # Sort targets by distance to interest point
-        enemy_targets.sort(key=lambda t: t[2])
-        
-        my_cell = pos_to_cell(pos)
-        my_cell_center = pygame.math.Vector2((my_cell[0] + 0.5) * CELL_SIZE, (my_cell[1] + 0.5) * CELL_SIZE)
-        
-        # Check if this drone is closest to any enemy target
-        for cell, target_pos, _ in enemy_targets:
-            my_distance = my_cell_center.distance_to(target_pos)
-            closest_distance = my_distance
-
-            # Compare with friend detections
-            for cell, intensity in np.ndenumerate(friend_intensity):
-                if intensity < activation_threshold_position:
-                    continue
-                friend_pos = pygame.math.Vector2((cell[0] + 0.5) * CELL_SIZE, (cell[1] + 0.5) * CELL_SIZE)
-                friend_distance = friend_pos.distance_to(target_pos)
-                if friend_distance < closest_distance:
-                    closest_distance = friend_distance
-
-            # If this drone is closest (or tied), pursue the target
-            if my_distance <= closest_distance:
-                direction = intercept_direction(pos, FRIEND_SPEED, target_pos, enemy_direction[cell])
-                if direction.length() > 0:
-                    info = "Pursuing enemy target."
-                    return info, direction.normalize()
-                else:
-                    info = "Enemy target is stationary."
-                    return info, pygame.math.Vector2(0, 0)
-        
-        # If no enemy target is pursued, hold position
-        return hold_position(pos, friend_intensity)
         
     # -------------------------------------------------------------------------
     # Apply Behavior
@@ -935,7 +846,7 @@ class FriendDrone:
             'enemy_direction': np.expand_dims(self.enemy_direction, axis=0)
         }
         
-        self.info, direction = self.ai_policy(state)
+        self.info, direction = RL_policy(state)
         self.vel = direction * FRIEND_SPEED if direction.length() > 0 else pygame.math.Vector2(0, 0)
         self.current_state = self.info[0] if isinstance(self.info, tuple) else self.info
         

@@ -24,7 +24,7 @@ if config_dir not in sys.path:
 # Project-specific imports
 from settings import SIM_WIDTH, SIM_HEIGHT, GRID_HEIGHT, GRID_WIDTH, INTEREST_POINT_CENTER  # Simulation parameters
 from utils import generate_sparse_matrix  # Utility function for generating sparse matrices
-from FriendDrone import FriendDrone  # FriendDrone class with planning policy
+from planningAlgorithm import planning_policy  # FriendDrone class with planning policy
 
 def create_behavior_dataset():
     
@@ -53,9 +53,14 @@ def create_behavior_dataset():
             }
             
             # Compute the action using the class method of planning policy
-            action = FriendDrone.planning_policy(state)
+            info, direction = planning_policy(state)
+            str_state, _, _, _ = info
+            
+            if str_state != 'HOLD SPREAD':
+                continue
+            
             # Convert the action to a NumPy array with float32 type if necessary
-            action = np.array(action, dtype=np.float32)
+            action = np.array(direction, dtype=np.float32)
             
             yield state, action
         
