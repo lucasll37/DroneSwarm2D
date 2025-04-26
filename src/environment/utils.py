@@ -357,7 +357,7 @@ def load_svg_as_surface(svg_path: str) -> pygame.Surface:
 # Grid and Positioning Utilities
 # -----------------------------------------------------------------------------
 def pos_to_cell(pos: pygame.math.Vector2, cell_size: int = CELL_SIZE,
-                sim_width: int = SIM_WIDTH, sim_height:int = SIM_HEIGHT) -> Tuple[int, int]:
+                grid_width: int = GRID_WIDTH, grid_height:int = GRID_HEIGHT) -> Tuple[int, int]:
     """
     Converts a position (Vector2) to grid cell coordinates.
 
@@ -367,8 +367,8 @@ def pos_to_cell(pos: pygame.math.Vector2, cell_size: int = CELL_SIZE,
     Returns:
         Tuple[int, int]: Cell coordinates (x, y).
     """
-    x: int = int(min(pos.x // cell_size, sim_width - 1))
-    y: int = int(min(pos.y // cell_size, sim_height - 1))
+    x: int = int(min(pos.x // cell_size, grid_width - 1))
+    y: int = int(min(pos.y // cell_size, grid_height - 1))
     
     return (x, y)
 

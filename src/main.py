@@ -44,11 +44,9 @@ def main() -> None:
     # Create an instance of the AirTrafficEnv.
     env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='planning', enemy_behavior=ENEMY_BEHAVIOR, demilitarized_zones=DMZ, seed=None)
     # env: AirTrafficEnv = AirTrafficEnv(mode='human', friend_behavior='AI', enemy_behavior=ENEMY_BEHAVIOR, demilitarized_zones=DMZ, seed=None)
-    
-    episodes: int = 5  # Set number of episodes to run
-    
+        
     # Main loop: run for the specified number of episodes.
-    for episode in range(episodes):
+    for episode in range(EPISODES):
         # Reset the environment to start a new episode.
         obs, done = env.reset()
         total_reward: float = 0.0

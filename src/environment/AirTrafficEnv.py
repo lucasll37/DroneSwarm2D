@@ -984,7 +984,7 @@ class AirTrafficEnv:
                         self.selected_drone.selected = True
                         break
 
-    def compute_reward(self, normilizer_factor: int = 1/10_000, bonus_factor: int = 10, penalty_factor: int = 200) -> float:
+    def compute_reward(self, normilizer_factor: int = 1/10_000, bonus_factor: int = 10, penalty_factor: int = 2000) -> float:
         """
         Computes the reward based on enemy distances to the interest point,
         with bonuses for early enemy neutralization and penalties for attacks.
