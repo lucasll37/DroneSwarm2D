@@ -706,8 +706,20 @@ class AirTrafficEnv:
                     self.interest_point.health -= INTEREST_POINT_DAMAGE
                     self.attack_penalty += 1
                     self.sucessful_attacks += 1
+                    
+                    # elimina um drone RADAR, se existir
+                    radar_to_remove = next((d for d in self.friend_drones if d.behavior_type == "RADAR"), None)
+                    if radar_to_remove:
+                        self.friend_drones.remove(radar_to_remove)
+                        # se era líder ou selecionado, limpamos as referências
+                        if radar_to_remove.is_leader:
+                            self.leader = None
+                        if radar_to_remove.selected:
+                            self.selected_drone = None
+                    
                 else:
                     surviving_enemies.append(enemy)
+                    
             self.enemy_drones = surviving_enemies
             if self.interest_point.health < 0:
                 self.interest_point.health = 0
