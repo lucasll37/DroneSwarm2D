@@ -6,6 +6,7 @@
 	"RADAR_RANGE": 0,
 	"HOLD_SPREAD": false,
 	"ENEMY_BEHAVIOR": "None",
+	"PASSIVE_DETECTION": false,
 	
 	"FRIEND_COUNT": 40,
 	"ENEMY_COUNT": 40,
