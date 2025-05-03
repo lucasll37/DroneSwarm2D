@@ -64,14 +64,13 @@ def main() -> None:
     os.makedirs(save_folder, exist_ok=True)
     
     # Define the CSV file path for saving episode results.
-    csv_path = "./data/proposal_aew_spread/results_2025_04_25_09h22m50s.csv"
-    # csv_path = os.path.join(save_folder, F"results_{timestamp}.csv")
+    csv_path = os.path.join(save_folder, F"results_{timestamp}.csv")
     
     # Create an instance of the Air Traffic Environment.
     env: AirTrafficEnv = AirTrafficEnv(mode=None, friend_behavior='planning', enemy_behavior=None, demilitarized_zones=DMZ, seed=42)
     
     # Run episodes and persist results.
-    for episode in range(12): # range(ANALYSIS_EPISODES):
+    for episode in range(ANALYSIS_EPISODES):
         obs, done = env.reset()
         total_reward: float = 0.0
         
