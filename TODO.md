@@ -121,3 +121,13 @@ Cronograma:
 5)	Escrever Dissertação – Outubro e Novembro
 6)	Submissão do artigo para o Jornal IEEE Latin America Transactions – Novembro
 7)	Defesa do Mestrado – ASAP 2026
+
+
+----
+1) Greedy: Drones operam de forma independente, sem comunicação entre si. Cada drone é responsável pela propria detecção.
+
+2) Centralizada: Os drones operam de forma centralizada, com comunicação entre si intermediada exclusivamente pelo elemento central, que tambpem é resposável de alimentar a rede com informações de detecção bem como informação de posição dos demais drones aliados. Sem esseelemento centralizador, os drones deixam de operar de forma ativa, pois não recebe mais informação, já que eles não se comunicam entre si.
+
+3) Proposta: Os drones operam de forma descentralizada, com comunicação entre si. Um drone sozinho somente é capaz de perceber o avistamento de um drone inimigo, contudo  somente a direção do avistamento, dentro de raio de alcance. A partir do momento que um drone avista um inimigo, ele comunica a informação para os demais drones, que também podem avistar o inimigo. A correta determinação da posição do inimigo é feita através de triangulação, onde cada drone tem a informação de sua posição e a direção do avistamento. A partir disso, os drones podem determinar a posição do inimigo e se deslocar para o local. O fato do algoritmo ser descentralizado, permite que os drones se comuniquem entre si sem qualquer elmento centralizador. Ou seja, sem ponto unico de falha.
+
+3) Proposta com AEW: Mesmo algoritmo da proposta, mas com a adição de um drone AEW (Airborne Early Warning), que tem a capacidade de detectar o inimigo em um raio maior. O drone AEW também é capaz de comunicar a informação para os demais drones, que também podem avistar o inimigo. A correta determinação da posição do inimigo é feita através de triangulação, onde cada drone tem a informação de sua posição e a direção do avistamento. A partir disso, os drones podem determinar a posição do inimigo e se deslocar para o local. O fato do algoritmo ser descentralizado, permite que os drones se comuniquem entre si sem qualquer elmento centralizador. Ou seja, sem ponto unico de falha. Contudo, os Drones AEW não são capazer de engajar o inimigo (tentativa de neutralizá-lo)
