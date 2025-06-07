@@ -67,7 +67,7 @@ def main() -> None:
     print(f"Video saved as: {video_filename}")
     
     # — Remover a pasta de frames e todo o seu conteúdo —
-    shutil.rmtree(frames_dir)
+    # shutil.rmtree(frames_dir)
 
 # -----------------------------------------------------------------------------
 # Entry Point

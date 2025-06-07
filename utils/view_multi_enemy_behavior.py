@@ -31,6 +31,8 @@ if config_dir not in sys.path:
 # Project-specific imports
 from EnemyDrone import EnemyDrone
 
+EnemyDrone.set_class_seed(42)  # Set a fixed seed for reproducibility
+
 os.makedirs('./images', exist_ok=True)
 
 # -----------------------------------------------------------------------------
@@ -156,15 +158,23 @@ def main() -> None:
         # Highlight the interest point with a blue square with a black edge.
         ax.scatter(interest_point.center.x, interest_point.center.y, color='blue', s=300, 
                    marker='s', edgecolors='black', zorder=15, label='Interest Point')
-        ax.set_title(f"Simulation Instance {inst+1}")
+        ax.set_title("Enemy Trajectories", fontsize=16, fontweight='bold')
         ax.set_xlim(0, SIM_WIDTH)
         ax.set_ylim(0, SIM_HEIGHT)
         ax.invert_yaxis()  # Invert y-axis to match pygame's coordinate system.
-        ax.legend(fontsize='small')
+        
+        # Configurar tamanho da fonte dos números dos eixos
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        
+        # Configurar legenda fora do gráfico, embaixo, com 5 colunas (3 linhas)
+        ax.legend(fontsize=16, bbox_to_anchor=(0.5, -0.15), loc='upper center', 
+                  ncol=5, columnspacing=1.5, handletextpad=0.5)
     
     plt.tight_layout()
+    # Ajustar espaçamento para acomodar a legenda externa (3 linhas)
+    plt.subplots_adjust(bottom=0.3)
     output_path = "./images/multi_simulation_trajectories.png"
-    plt.savefig(output_path)
+    plt.savefig(output_path, dpi=600)  # Adicionado DPI maior para melhor qualidade
     plt.close()
     print(f"Simulation trajectories saved as: {output_path}")
 

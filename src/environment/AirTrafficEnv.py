@@ -136,36 +136,36 @@ def draw_heatmap(surface: pygame.Surface, global_intensity: np.ndarray, base_col
                 pygame.draw.rect(surface, color, rect)
                 
                 
-def draw_triangulation(surface: pygame.Surface, global_triangulation: np.ndarray, base_color: str) -> None:
-    for i in range(global_triangulation.shape[0]):
-        for j in range(global_triangulation.shape[1]):
-            detections: float = global_triangulation[i, j]
+# def draw_triangulation(surface: pygame.Surface, global_triangulation: np.ndarray, base_color: str) -> None:
+#     for i in range(global_triangulation.shape[0]):
+#         for j in range(global_triangulation.shape[1]):
+#             detections: float = global_triangulation[i, j]
             
-            # intensity = min(1, detections / N_LINE_SIGHT_CROSSING)
-            # if intensity > 1e-6:
+#             intensity = min(1, detections / N_LINE_SIGHT_CROSSING)
+#             if intensity > 1e-6:
+#                 if base_color == "red":
+#                     color: Tuple[int, int, int] = (int(intensity * 255), 0, 0)
+                    
+#                 elif base_color == "orange":
+#                     color: Tuple[int, int, int] = (int(intensity * 255), int(intensity * 165), 0)
+#                 else:
+#                     color = (0, 0, int(intensity * 255))
+                    
+#                 cell_size = CELL_SIZE / TRIANGULATION_GRANULARITY
+#                 rect = pygame.Rect(i * cell_size, j * cell_size, cell_size, cell_size)
+#                 pygame.draw.rect(surface, color, rect)
+                        
+            # if detections >= N_LINE_SIGHT_CROSSING:
             #     if base_color == "red":
-            #         color: Tuple[int, int, int] = (int(intensity * 255), 0, 0)
+            #         color: Tuple[int, int, int] = (255, 0, 0)
                     
             #     elif base_color == "orange":
-            #         color: Tuple[int, int, int] = (int(intensity * 255), int(intensity * 165), 0)
+            #         color: Tuple[int, int, int] = (255, 165, 0)
             #     else:
-            #         color = (0, 0, int(intensity * 255))
+            #         color = (0, 0, 255)
                     
-            #     cell_size = CELL_SIZE / TRIANGULATION_GRANULARITY
-            #     rect = pygame.Rect(i * cell_size, j * cell_size, cell_size, cell_size)
+            #     rect = pygame.Rect((i //TRIANGULATION_GRANULARITY) * CELL_SIZE, (j // TRIANGULATION_GRANULARITY) * CELL_SIZE, CELL_SIZE, CELL_SIZE)
             #     pygame.draw.rect(surface, color, rect)
-                        
-            if detections == N_LINE_SIGHT_CROSSING:
-                if base_color == "red":
-                    color: Tuple[int, int, int] = (255, 0, 0)
-                    
-                elif base_color == "orange":
-                    color: Tuple[int, int, int] = (255, 165, 0)
-                else:
-                    color = (0, 0, 255)
-                    
-                rect = pygame.Rect((i //TRIANGULATION_GRANULARITY) * CELL_SIZE, (j // TRIANGULATION_GRANULARITY) * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                pygame.draw.rect(surface, color, rect)
                 
 
 def draw_friend_communication(surface: pygame.Surface,
