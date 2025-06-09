@@ -99,10 +99,21 @@ def main() -> None:
             "interest_point_health": interest_point_health,
             "total_distance_traveled": total_distance
         }
-        
-        for state, percentage in state_percentages.items():
-            result[f"state_{state.replace(' ', '_')}"] = percentage
 
+        all_states = [
+            "PURSUING",
+            "HOLD - WAIT",
+            "HOLD - RETURN",
+            "HOLD - NO ENOUGH COMM",
+            "HOLD - INTCPT",
+            "GO HOLD INTCPT",
+            "HOLD - SPREAD"
+        ]
+        
+        for state in all_states:
+            percentage = state_percentages.get(state, 0)
+            result[f"state {state}"] = percentage
+        
         # Persist the episode result immediately.
         persist_episode_result(result, csv_path)
         

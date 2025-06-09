@@ -77,8 +77,21 @@ def main() -> None:
         print(f"\tInterest Point Health: {interest_point_health}")
         print(f"\tTotal Distance Traveled: {total_distance:.2f} px")
         print("\tState Percentages:")
-        for state, percentage in state_percentages.items():
+        
+        all_states = [
+            "PURSUING",
+            "HOLD - WAIT",
+            "HOLD - RETURN",
+            "HOLD - NO ENOUGH COMM",
+            "HOLD - INTCPT",
+            "GO HOLD INTCPT",
+            "HOLD - SPREAD"
+        ]
+        
+        for state in all_states:
+            percentage = state_percentages.get(state, 0)
             print(f"\t\t{state}: {percentage:.2f}%")
+            
         
     print("-" * 50)
         

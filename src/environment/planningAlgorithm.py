@@ -48,7 +48,7 @@ def planning_policy(state, friend_activation_threshold_position: float = 0.7,
         
         # Caso 1: Se o drone estiver muito próximo do ponto de interesse, permanece parado.
         if pos.distance_to(INTEREST_POINT_CENTER) < EPSILON:
-            info = ("HOLD", None, None, friends_hold)
+            info = ("HOLD - WAIT", None, None, friends_hold)
             return info, pygame.math.Vector2(0, 0)
         
         # Constrói a grade dos centros das células com base em friend_intensity.
@@ -98,7 +98,7 @@ def planning_policy(state, friend_activation_threshold_position: float = 0.7,
                 feasible = projection_point.distance_to(INTEREST_POINT_CENTER) < cell_center.distance_to(INTEREST_POINT_CENTER)
                     
                 if pos.distance_to(projection_point) <= EPSILON and feasible:
-                    info = ("HOLD INTCPT", None, None, friends_hold)
+                    info = ("HOLD - INTCPT", None, None, friends_hold)
                     direction = pygame.math.Vector2(0, 0)
                     return info, direction
                 
@@ -145,11 +145,11 @@ def planning_policy(state, friend_activation_threshold_position: float = 0.7,
                 if direction.length() > 1:
                     direction = direction.normalize()
                     
-                info = ("HOLD SPREAD", None, None, friends_hold)
+                info = ("HOLD - SPREAD", None, None, friends_hold)
                     
                 return info, direction
 
-            info = ("HOLD", None, None, friends_hold)
+            info = ("HOLD - WAIT", None, None, friends_hold)
             return info, pygame.math.Vector2(0, 0)
         
         # Caso 3: Se não estiver conectado a pelo menos dois amigos, retorna a direção para o PI.
