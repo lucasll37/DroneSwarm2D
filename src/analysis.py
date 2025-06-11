@@ -71,6 +71,9 @@ def main() -> None:
     
     # Run episodes and persist results.
     for episode in range(ANALYSIS_EPISODES):
+        if episode < 112:
+            pass
+        
         obs, done = env.reset()
         total_reward: float = 0.0
         
