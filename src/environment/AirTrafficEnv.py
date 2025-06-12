@@ -32,8 +32,8 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from typing import Tuple, List, Any, Optional
 
-import pyximport
-pyximport.install(build_dir="build/lib", inplace=False)
+# import pyximport
+# pyximport.install(build_dir="build/lib", inplace=False)
 
 import InterestPoint
 # import DemilitarizedZone
@@ -532,6 +532,9 @@ class AirTrafficEnv:
         EnemyDrone.set_class_seed(seed=self.seed)
         self.enemy_drones = [EnemyDrone(self.interest_point.center, behavior_type=self.enemy_behavior)
                              for _ in range(ENEMY_COUNT)]
+        
+        if JOYSTICK:
+            self.enemy_drones.append(EnemyDrone(self.interest_point.center, behavior_type='joystick'))
         
         done: bool = self.current_step >= self.max_steps or len(self.enemy_drones) == 0
         return self._get_observation(), done

@@ -21,6 +21,14 @@ from settings import *
 from utils import draw_dashed_circle, load_svg_as_surface
 
 
+# --- Inicialização do Joystick ---
+joystick = None
+
+if pygame.joystick.get_count() > 0:
+    joystick = pygame.joystick.Joystick(0)
+    joystick.init()
+    print(f"Joystick '{joystick.get_name()}' conectado.")
+
 # -----------------------------------------------------------------------------
 # EnemyDrone Class
 # -----------------------------------------------------------------------------
@@ -35,6 +43,7 @@ class EnemyDrone:
     
     enemy_id_counter: int = 0
     original_drone_image: pygame.Surface = load_svg_as_surface("./assets/drone_9.svg")
+    original_drone_image_joystick: pygame.Surface = load_svg_as_surface("./assets/drone_10.svg")
 
     # Seed da classe - inicialmente None, será gerada se não for definida explicitamente
     class_seed = None
@@ -91,7 +100,7 @@ class EnemyDrone:
         else:
             self.behavior_type = behavior_type
 
-        if not self.behavior_type in ["formation", "biformation", "focal-direct", "debug", "u-debug"]:
+        if not self.behavior_type in ["formation", "biformation", "focal-direct", "debug", "u-debug", "joystick"]:
             self.start_delay = EnemyDrone.class_rng.randint(0, 100)
         else:
             self.start_delay = 0
@@ -99,11 +108,17 @@ class EnemyDrone:
         self.fixed = fixed
         self.trajectory: List[pygame.math.Vector2] = []
         
-        # Scale the drone image according to a desired width (e.g., 2% of SIM_WIDTH)
-        desired_width = int(SIM_WIDTH * 0.02)
-        aspect_ratio = self.original_drone_image.get_height() / self.original_drone_image.get_width()
-        desired_height = int(desired_width * aspect_ratio)
-        self.drone_image = pygame.transform.scale(self.original_drone_image, (desired_width, desired_height))
+        if self.behavior_type == "joystick":
+            desired_width = int(SIM_WIDTH * 0.02)
+            aspect_ratio = self.original_drone_image_joystick.get_height() / self.original_drone_image_joystick.get_width()
+            desired_height = int(desired_width * aspect_ratio)
+            self.drone_image = pygame.transform.scale(self.original_drone_image_joystick, (desired_width, desired_height))
+            
+        else:
+            desired_width = int(SIM_WIDTH * 0.02)
+            aspect_ratio = self.original_drone_image.get_height() / self.original_drone_image.get_width()
+            desired_height = int(desired_width * aspect_ratio)
+            self.drone_image = pygame.transform.scale(self.original_drone_image, (desired_width, desired_height))
         
         # New attributes for detection and aggressiveness
         self.detector: Optional[pygame.math.Vector2] = None  # Indicates detection by friendly drones
@@ -178,7 +193,8 @@ class EnemyDrone:
 
         distance_to_interest = self.pos.distance_to(self.interest_point_center)
         if distance_to_interest > INITIAL_DISTANCE:
-            self.aggressiveness = max(INITIAL_AGGRESSIVENESS, 1 - (distance_to_interest/ (2 *EXTERNAL_RADIUS)))
+            self.aggressiveness = max(INITIAL_AGGRESSIVENESS,
+                                      1 + (distance_to_interest - INITIAL_DISTANCE) * ((INITIAL_AGGRESSIVENESS - 1) / (EXTERNAL_RADIUS - INITIAL_DISTANCE)))
         else:
             self.aggressiveness = 1
         
@@ -240,8 +256,7 @@ class EnemyDrone:
             return
 
         # Aggressiveness: if detected, decide whether to attack or escape.
-        if self.detector:
-
+        if self.detector and self.behavior_type != 'joystick':
             if EnemyDrone.class_np_rng.rand() < self.aggressiveness:
                 self.desperate_attack = True
                 self.info = "DESPERATE ATTACK"
@@ -257,7 +272,33 @@ class EnemyDrone:
         self.info = f"aggr.: {self.aggressiveness:.2f}"
 
         # ---------------------- Behavior Implementations ----------------------
-        if self.behavior_type == "direct":
+        if self.behavior_type == "joystick":
+            # Verifica se há joysticks conectados
+            if joystick is not None:
+                
+                x_axis = joystick.get_axis(0) 
+                y_axis = joystick.get_axis(1)
+                
+                direction = pygame.math.Vector2(x_axis, y_axis)
+                
+                if direction.length() > 0.1:
+                    direction = direction.normalize()
+                else:
+                    direction = pygame.math.Vector2(0, 0)
+                    
+                if self.detector is not None:
+                    joystick.rumble(1, 0, 50)
+                    
+                else:
+                    joystick.rumble(0, self.aggressiveness, 50)
+
+                self.vel = direction * ENEMY_SPEED
+                self.info = "JOYSTICK"
+                
+            else:
+                self.info = "NO JOYSTICK"
+
+        elif self.behavior_type == "direct":
             # Move directly toward the interest point.
             self.vel = target_vector.normalize() * ENEMY_SPEED
 

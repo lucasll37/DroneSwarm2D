@@ -664,7 +664,7 @@ class FriendDrone:
             self.apply_behavior()
             
         # Update position
-        # self.pos += self.vel
+        self.pos += self.vel
 
         # Keep drone within simulation bounds
         self._enforce_simulation_bounds()

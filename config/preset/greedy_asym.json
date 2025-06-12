@@ -10,6 +10,7 @@
 	"INITIAL_N_LAYERS": 1,
 	"PASSIVE_DETECTION": false,
 	
+	"JOYSTICK": false,
 	"FRIEND_COUNT": 28,
 	"ENEMY_COUNT": 40,
 	"EPISODES": 5,
@@ -18,7 +19,7 @@
 	"RADAR_DETECTION_RANGE": 350,
 	"ENEMY_DETECTION_RANGE": 100,
 	"AEW_RANGE": 350,
-	"INITIAL_AGGRESSIVENESS": 0.5,
+	"INITIAL_AGGRESSIVENESS": 0.1,
 	"FULL_WIDTH": "display_info.current_w",
 	"FULL_HEIGHT": "display_info.current_h",
 	"DT_STEP": 0.6,
