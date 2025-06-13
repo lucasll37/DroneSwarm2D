@@ -19,7 +19,7 @@
 	"RADAR_DETECTION_RANGE": 350,
 	"ENEMY_DETECTION_RANGE": 100,
 	"AEW_RANGE": 350,
-	"INITIAL_AGGRESSIVENESS": 0.1,
+	"INITIAL_AGGRESSIVENESS": 0.5,
 	"FULL_WIDTH": "display_info.current_w",
 	"FULL_HEIGHT": "display_info.current_h",
 	"DT_STEP": 0.6,
