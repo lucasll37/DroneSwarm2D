@@ -891,10 +891,11 @@ class AirTrafficEnv:
         Renders the simulation and graph on the screen.
         """
         if mode == 'human':
+            
             self.sim_surface.fill((0, 0, 0))
             draw_grid(self.sim_surface)
 
-            if self.show_debug:
+            if self.show_debug and not JOYSTICK:
                 # Compute global enemy intensity from friend drones
                 global_triangulation = np.zeros((GRID_WIDTH * TRIANGULATION_GRANULARITY, GRID_HEIGHT * TRIANGULATION_GRANULARITY))
                 global_enemy_intensity = np.zeros((GRID_WIDTH, GRID_HEIGHT))
@@ -913,14 +914,22 @@ class AirTrafficEnv:
                 # if self.use_triangulation:
                 #     draw_triangulation(self.sim_surface, global_triangulation, "orange")
             
-            if self.show_dashed_lines:
+            if self.show_dashed_lines and not JOYSTICK:
                 draw_friend_communication(self.sim_surface, self.friend_drones, show_dashed=self.show_dashed_lines)
                 
             if self.show_target_lines:
                 self.draw_target_lines(self.sim_surface)
             
-            for friend in self.friend_drones:
-                friend.draw(self.sim_surface, self.show_friend_detection_range, self.show_friend_comm_range, self.show_trajectory, self.show_debug)
+            if JOYSTICK:
+                for friend in self.friend_drones:
+                    for enemy in self.enemy_drones:
+                        if friend.pos.distance_to(enemy.pos) <= ENEMY_DETECTION_RANGE:
+                            friend.draw(self.sim_surface, self.show_friend_detection_range, self.show_friend_comm_range, self.show_trajectory, self.show_debug)
+                            break
+            
+            else:
+                for friend in self.friend_drones:
+                    friend.draw(self.sim_surface, self.show_friend_detection_range, self.show_friend_comm_range, self.show_trajectory, self.show_debug)
                 
             for enemy in self.enemy_drones:
                 enemy.draw(self.sim_surface, self.show_enemy_detection_range, self.show_trajectory, self.show_debug)
